@@ -5,16 +5,22 @@
    ======================================================== */
 
 :root {
-    /* Emerald & Forest Green Palette */
-    --primary: #059669;           /* Emerald 600 */
-    --primary-dark: #065f46;      /* Emerald 800 */
-    --primary-deep: #022c22;      /* Emerald 950 */
-    --primary-light: #ecfdf5;     /* Emerald 50 */
-    --primary-hover: #047857;     /* Emerald 700 */
-    --primary-subtle: #d1fae5;    /* Emerald 100 */
-    --primary-border: #a7f3d0;    /* Emerald 200 */
-    --accent: #10b981;            /* Emerald 500 */
-    --accent-glow: rgba(16, 185, 129, 0.2);
+    /* YARAMAY Corporate Navy Blue & Crimson Red Palette */
+    --primary: #1e3a8a;           /* Blue 900 (Royal Navy) */
+    --primary-dark: #172554;      /* Blue 950 */
+    --primary-deep: #0f172a;      /* Slate 900 */
+    --primary-light: #eff6ff;     /* Blue 50 */
+    --primary-hover: #1d4ed8;     /* Blue 700 */
+    --primary-subtle: #dbeafe;    /* Blue 100 */
+    --primary-border: #bfdbfe;    /* Blue 200 */
+
+    /* YARAMAY Brand Red Accent */
+    --accent: #dc2626;            /* Red 600 */
+    --accent-dark: #b91c1c;       /* Red 700 */
+    --accent-light: #fef2f2;      /* Red 50 */
+    --accent-subtle: #fee2e2;     /* Red 100 */
+    --accent-border: #fca5a5;     /* Red 300 */
+    --accent-glow: rgba(220, 38, 38, 0.25);
 
     /* Neutral & Surfaces */
     --bg-page: #f8fafc;
@@ -25,23 +31,23 @@
     --border-hover: #cbd5e1;
 
     /* Typography */
-    --text-heading: #064e3b;
+    --text-heading: #0f172a;
     --text-body: #1e293b;
     --text-muted: #64748b;
     --text-light: #94a3b8;
 
     /* Semantic Status Colors */
-    --status-paid-bg: #d1fae5;
-    --status-paid-text: #065f46;
-    --status-paid-border: #a7f3d0;
+    --status-paid-bg: #dcfce7;
+    --status-paid-text: #15803d;
+    --status-paid-border: #86efac;
 
     --status-unpaid-bg: #fee2e2;
-    --status-unpaid-text: #991b1b;
-    --status-unpaid-border: #fecaca;
+    --status-unpaid-text: #b91c1c;
+    --status-unpaid-border: #fca5a5;
 
-    --status-pending-bg: #fef3c7;
-    --status-pending-text: #92400e;
-    --status-pending-border: #fde68a;
+    --status-pending-bg: #eff6ff;
+    --status-pending-text: #1e40af;
+    --status-pending-border: #bfdbfe;
 
     --status-cancelled-bg: #f1f5f9;
     --status-cancelled-text: #475569;
@@ -49,8 +55,8 @@
 
     /* Elevation & Shadows */
     --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 12px -2px rgba(6, 78, 59, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
-    --shadow-lg: 0 10px 25px -5px rgba(6, 78, 59, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 12px -2px rgba(15, 23, 42, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+    --shadow-lg: 0 10px 25px -5px rgba(15, 23, 42, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
 
     /* Radius */
     --radius-sm: 6px;
@@ -125,7 +131,7 @@ a:hover {
 /* Sidebar */
 .sidebar {
     width: var(--sidebar-width);
-    background: linear-gradient(180deg, #064e3b 0%, #022c22 100%);
+    background: linear-gradient(180deg, #172554 0%, #0f172a 100%);
     color: #ffffff;
     display: flex;
     flex-direction: column;
@@ -163,25 +169,27 @@ html[dir="ltr"] .sidebar {
 .brand-logo-icon {
     width: 44px;
     height: 44px;
-    background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+    background: #ffffff;
+    border: 2px solid var(--accent);
     border-radius: var(--radius-md);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #ffffff;
+    color: var(--primary);
     box-shadow: 0 4px 10px var(--accent-glow);
 }
 
 .brand-title {
-    font-size: 17px;
+    font-size: 18px;
     font-weight: 800;
     color: #ffffff;
+    letter-spacing: 1px;
     line-height: 1.2;
 }
 
 .brand-subtitle {
     font-size: 11px;
-    color: #a7f3d0;
+    color: #93c5fd;
     font-weight: 500;
 }
 
@@ -364,11 +372,11 @@ html[dir="ltr"] .main-wrapper {
 .btn-primary {
     background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
     color: #ffffff;
-    box-shadow: 0 2px 8px rgba(5, 150, 105, 0.25);
+    box-shadow: 0 2px 8px rgba(30, 58, 138, 0.25);
 }
 .btn-primary:hover {
     background: linear-gradient(135deg, var(--primary-hover) 0%, var(--primary-dark) 100%);
-    box-shadow: 0 4px 14px rgba(5, 150, 105, 0.35);
+    box-shadow: 0 4px 14px rgba(30, 58, 138, 0.35);
     color: white;
 }
 
@@ -436,6 +444,12 @@ html[dir="ltr"] .main-wrapper {
     border-color: var(--status-paid-border);
 }
 
+.badge-partial {
+    background: #fef3c7;
+    color: #b45309;
+    border-color: #fde68a;
+}
+
 .badge-unpaid {
     background: var(--status-unpaid-bg);
     color: var(--status-unpaid-text);
@@ -452,6 +466,146 @@ html[dir="ltr"] .main-wrapper {
     background: var(--status-cancelled-bg);
     color: var(--status-cancelled-text);
     border-color: var(--status-cancelled-border);
+}
+
+/* Balance Badges */
+.balance-pill-paid {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #15803d;
+    background: #dcfce7;
+    border: 1px solid #bbf7d0;
+    border-radius: var(--radius-sm);
+}
+
+.balance-pill-due {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #b91c1c;
+    background: #fee2e2;
+    border: 1px solid #fecaca;
+    border-radius: var(--radius-sm);
+}
+
+/* KPI Card Balance Theme */
+.kpi-card.balance {
+    border-right: 4px solid #ea580c;
+}
+html[dir="ltr"] .kpi-card.balance {
+    border-right: none;
+    border-left: 4px solid #ea580c;
+}
+.kpi-card.balance .kpi-icon {
+    background: #fff7ed;
+    color: #ea580c;
+}
+
+/* Client Portal & Cards */
+.portal-card {
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    padding: 28px;
+    margin-bottom: 24px;
+}
+
+.package-choice-card {
+    border: 2px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: #ffffff;
+}
+.package-choice-card:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+}
+.package-choice-card.selected {
+    border-color: var(--primary);
+    background: var(--primary-light);
+}
+
+/* Partner Assignment Badges */
+.badge-partner-ibraheem {
+    background: #dbeafe;
+    color: #1e40af;
+    border: 1px solid #bfdbfe;
+    font-weight: 700;
+}
+
+.badge-partner-fawas {
+    background: #f3e8ff;
+    color: #7e22ce;
+    border: 1px solid #e9d5ff;
+    font-weight: 700;
+}
+
+.badge-partner-both {
+    background: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+    font-weight: 700;
+}
+
+.installment-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 7px;
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    border-radius: var(--radius-sm);
+    font-size: 11px;
+    font-weight: 600;
+    color: #334155;
+}
+
+/* Partner Earnings Distribution Grid */
+.partner-summary-box {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+.partner-card {
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 18px 20px;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: transform 0.2s ease;
+}
+.partner-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+.partner-card.ibraheem {
+    border-left: 4px solid #1e40af;
+}
+.partner-card.fawas {
+    border-left: 4px solid #7e22ce;
+}
+html[dir="rtl"] .partner-card.ibraheem {
+    border-left: none;
+    border-right: 4px solid #1e40af;
+}
+html[dir="rtl"] .partner-card.fawas {
+    border-left: none;
+    border-right: 4px solid #7e22ce;
 }
 
 /* ========================================================

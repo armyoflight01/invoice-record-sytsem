@@ -1,29 +1,31 @@
 <?php
 /**
- * Arabic & English Invoice Record System - Printable Invoice
- * طباعة الفاتورة الضريبية / التجارية باللغتين العربية والإنجليزية
+ * YARAMAY Computer Maintenance Services
+ * Official Printable Invoice System
+ * Matches the official company format with bilingual support (English / Arabic)
  */
 
 require_once __DIR__ . '/config.php';
 
 $id = (int)($_GET['id'] ?? 0);
 if (!$id) {
-    die('خطأ: رقم الفاتورة غير محدد | Error: Invoice ID is required.');
+    die('Error: Invoice ID is required.');
 }
 
-$lang = strtolower($_GET['lang'] ?? 'ar');
-if ($lang !== 'en') {
-    $lang = 'ar';
+$lang = strtolower($_GET['lang'] ?? 'en');
+if ($lang !== 'ar') {
+    $lang = 'en';
 }
 $isEn = ($lang === 'en');
 $dir = $isEn ? 'ltr' : 'rtl';
 
 $db = getDatabaseConnection();
 
-// Fetch invoice
+// Fetch invoice with client details
 $stmt = $db->prepare("
     SELECT i.*, 
            c.name as client_name, 
+           c.contact_person,
            c.phone as client_phone, 
            c.email as client_email, 
            c.address as client_address, 
@@ -36,7 +38,7 @@ $stmt->execute([$id]);
 $invoice = $stmt->fetch();
 
 if (!$invoice) {
-    die('خطأ: الفاتورة غير موجودة | Error: Invoice not found.');
+    die('Error: Invoice not found.');
 }
 
 // Fetch items
@@ -47,697 +49,631 @@ $items = $itemStmt->fetchAll();
 // Fetch settings
 $settings = $db->query("SELECT key, value FROM settings")->fetchAll(PDO::FETCH_KEY_PAIR);
 
-$companyName = $settings['company_name'] ?? ($isEn ? 'Al-Waha Business Solutions' : 'مؤسسة الواحة للحلول التجارية');
-$companyCr = $settings['company_cr'] ?? '';
-$companyVat = $settings['company_vat'] ?? '';
-$companyPhone = $settings['company_phone'] ?? '';
-$companyEmail = $settings['company_email'] ?? '';
-$companyAddress = $settings['company_address'] ?? '';
-$currency = $settings['currency'] ?? ($isEn ? 'SAR' : 'ر.س');
-$footerNote = $settings['invoice_footer'] ?? ($isEn ? 'Thank you for your business. Payment is due within agreed terms.' : 'شكراً لتعاملكم معنا. تسري هذه الفاتورة كإشعار رسمي للدفع.');
+$companyName = $settings['company_name'] ?? 'YARAMAY Computer Maintenance Services';
+$companyAddress = $settings['company_address'] ?? '#19 Street Brgy. San Andres Cainta Rizal Cambridge C5 -1G';
+$companyPhone = $settings['company_phone'] ?? '+639075251376 (SMS) +966508624264';
+$companyWebsite = $settings['company_website'] ?? 'www.yaramay.online';
+$companyGcash = $settings['company_gcash'] ?? '09617190588';
+$companyManager = $settings['company_manager'] ?? 'Ferdenand (Ibraheem) Sabado';
+$companyTitle = $settings['company_title'] ?? 'General Manager';
+$companyCert = $settings['company_cert'] ?? 'MCP,MCSE,MCSA and CISCO Certified';
+$currency = $settings['currency'] ?? 'PHP';
 
-// Status translation
+// Format values
+$totalCostFormatted = number_format((float)$invoice['grand_total'], 2);
+$paymentFormatted = number_format((float)$invoice['paid_amount'], 2);
+$balanceFormatted = number_format((float)$invoice['remaining_balance'], 2);
+
+// Status styling
 $statusLabels = [
     'paid' => [
-        'text' => $isEn ? 'Paid in Full' : 'مدفوعة بالكامل',
-        'class' => 'status-paid'
+        'text' => $isEn ? 'PAID IN FULL' : 'مدفوعة بالكامل',
+        'class' => 'status-badge-paid'
+    ],
+    'partial' => [
+        'text' => $isEn ? 'PARTIAL PAYMENT' : 'دفعة جزئية',
+        'class' => 'status-badge-partial'
     ],
     'unpaid' => [
-        'text' => $isEn ? 'Unpaid (Due)' : 'غير مدفوعة (مستحقة)',
-        'class' => 'status-unpaid'
+        'text' => $isEn ? 'UNPAID / BALANCE DUE' : 'غير مدفوعة',
+        'class' => 'status-badge-unpaid'
     ],
     'pending' => [
-        'text' => $isEn ? 'Pending' : 'قيد الانتظار',
-        'class' => 'status-pending'
+        'text' => $isEn ? 'PENDING' : 'قيد الانتظار',
+        'class' => 'status-badge-pending'
     ],
     'cancelled' => [
-        'text' => $isEn ? 'Cancelled' : 'ملغاة',
-        'class' => 'status-cancelled'
-    ],
+        'text' => $isEn ? 'CANCELLED' : 'ملغاة',
+        'class' => 'status-badge-cancelled'
+    ]
 ];
-$statusInfo = $statusLabels[$invoice['status']] ?? ['text' => $invoice['status'], 'class' => ''];
-
-// Payment method translation
-$paymentMethods = [
-    'cash' => $isEn ? 'Cash' : 'نقداً (كاش)',
-    'bank_transfer' => $isEn ? 'Bank Transfer' : 'تحويل بنكي',
-    'card' => $isEn ? 'Credit / Mada Card' : 'بطاقة مدى / ائتمان',
-    'cheque' => $isEn ? 'Bank Cheque' : 'شيك مصرفي'
-];
-$paymentMethodText = $paymentMethods[$invoice['payment_method']] ?? $invoice['payment_method'];
-
-// Simple TLV Encoder for Saudi E-Invoicing (ZATCA Phase 1 QR format)
-function getZatcaQrBase64($seller, $vatNumber, $timestamp, $total, $tax) {
-    $tlv = '';
-    $tags = [
-        1 => $seller,
-        2 => $vatNumber,
-        3 => $timestamp,
-        4 => number_format((float)$total, 2, '.', ''),
-        5 => number_format((float)$tax, 2, '.', '')
-    ];
-    foreach ($tags as $tag => $value) {
-        $valStr = (string)$value;
-        $len = strlen($valStr);
-        $tlv .= chr($tag) . chr($len) . $valStr;
-    }
-    return base64_encode($tlv);
-}
-
-$qrData = getZatcaQrBase64(
-    $companyName,
-    $companyVat,
-    $invoice['issue_date'] . 'T12:00:00Z',
-    $invoice['grand_total'],
-    $invoice['tax_amount']
-);
+$statusInfo = $statusLabels[$invoice['status']] ?? ['text' => strtoupper($invoice['status']), 'class' => ''];
 ?>
 <!DOCTYPE html>
-<html lang="<?php echo $lang; ?>" dir="<?php echo $dir; ?>">
+<html lang="<?= htmlspecialchars($lang) ?>" dir="<?= $dir ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $isEn ? "Invoice #{$invoice['invoice_number']} - {$companyName}" : "فاتورة رقم {$invoice['invoice_number']} - {$companyName}"; ?></title>
+    <title><?= htmlspecialchars($invoice['invoice_number']) ?> - <?= htmlspecialchars($invoice['client_name'] ?? 'Invoice') ?> | YARAMAY</title>
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Tajawal:wght@400;500;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Cairo:wght@400;600;700;800&family=Alex+Brush&display=swap" rel="stylesheet">
+    
     <style>
-        :root {
-            --primary-green: #047857;
-            --primary-dark: #064e3b;
-            --primary-light: #ecfdf5;
-            --primary-border: #a7f3d0;
-            --accent-green: #10b981;
-            --text-main: #1f2937;
-            --text-muted: #6b7280;
-            --bg-gray: #f9fafb;
-            --border-color: #e5e7eb;
-        }
-
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
         }
-
         body {
-            font-family: <?php echo $isEn ? "'Inter', 'Segoe UI', Arial, sans-serif" : "'Tajawal', 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif"; ?>;
-            background-color: #f3f4f6;
-            color: var(--text-main);
-            direction: <?php echo $dir; ?>;
-            text-align: <?php echo $isEn ? 'left' : 'right'; ?>;
-            padding: 24px;
-            font-size: 14px;
-            line-height: 1.6;
+            font-family: <?= $isEn ? "'Inter', sans-serif" : "'Cairo', 'Inter', sans-serif" ?>;
+            background-color: #f1f5f9;
+            color: #1e293b;
+            font-size: 13px;
+            line-height: 1.5;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
 
+        /* Top Action Bar (Hidden when printing) */
         .no-print-bar {
-            max-width: 820px;
-            margin: 0 auto 16px auto;
+            background: #ffffff;
+            border-bottom: 1px solid #cbd5e1;
+            padding: 12px 24px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            background: white;
-            padding: 12px 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-            border: 1px solid var(--border-color);
-            flex-wrap: wrap;
+            justify-content: space-between;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+        }
+        .bar-left, .bar-right {
+            display: flex;
+            align-items: center;
             gap: 10px;
         }
-
-        .btn {
+        .btn-action {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
-            padding: 9px 18px;
-            font-size: 13.5px;
-            font-weight: 700;
-            font-family: inherit;
-            border-radius: 8px;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
             cursor: pointer;
             text-decoration: none;
-            transition: all 0.2s ease;
-            border: none;
+            transition: all 0.15s ease;
+            border: 1px solid transparent;
+        }
+        .btn-primary {
+            background-color: #1e3a8a;
+            color: #ffffff;
+        }
+        .btn-primary:hover {
+            background-color: #172554;
+        }
+        .btn-secondary {
+            background-color: #ffffff;
+            color: #334155;
+            border-color: #cbd5e1;
+        }
+        .btn-secondary:hover {
+            background-color: #f8fafc;
+            border-color: #94a3b8;
         }
 
-        .btn-green {
-            background-color: var(--primary-green);
-            color: white;
-        }
-        .btn-green:hover {
-            background-color: var(--primary-dark);
-        }
-
-        .btn-outline {
-            background-color: white;
-            color: var(--text-main);
-            border: 1px solid var(--border-color);
-        }
-        .btn-outline:hover {
-            background-color: var(--bg-gray);
-        }
-
-        .btn-lang {
-            background: var(--primary-light);
-            color: var(--primary-dark);
-            border: 1px solid var(--primary-border);
-        }
-
-        /* Invoice Container */
-        .invoice-box {
-            max-width: 820px;
-            margin: 0 auto;
-            padding: 40px;
+        /* Page Container */
+        .invoice-page {
+            width: 210mm;
+            min-height: 297mm;
+            margin: 24px auto;
             background: #ffffff;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-            border-top: 8px solid var(--primary-green);
+            padding: 20mm 20mm 15mm 20mm;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
             position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
 
-        /* Header */
-        .invoice-header {
+        /* YARAMAY Centered Header */
+        .brand-header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .logo-emblem {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        .logo-title {
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: 3px;
+            color: #0f172a;
+            margin-top: 4px;
+        }
+        .logo-subtitle {
+            font-size: 10px;
+            letter-spacing: 0.5px;
+            color: #475569;
+            font-weight: 500;
+        }
+        .brand-top-contact {
+            font-size: 11px;
+            color: #334155;
+            margin-top: 6px;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 12px;
+        }
+        .brand-top-contact a {
+            color: #0284c7;
+            text-decoration: underline;
+        }
+
+        /* Invoice Meta & Bill To Grid */
+        .invoice-meta-row {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            border-bottom: 2px solid var(--primary-border);
-            padding-bottom: 24px;
-            margin-bottom: 24px;
+            margin-bottom: 20px;
         }
-
-        .company-info h1 {
-            font-size: 24px;
-            color: var(--primary-dark);
-            margin-bottom: 6px;
-            font-weight: 800;
+        .bill-to-box {
+            max-width: 55%;
         }
-
-        .company-info p {
-            color: var(--text-muted);
+        .bill-to-title {
+            font-weight: 700;
+            font-size: 14px;
+            color: #0f172a;
+            margin-bottom: 4px;
+        }
+        .bill-to-line {
             font-size: 13px;
-            line-height: 1.5;
+            color: #1e293b;
+            margin-bottom: 2px;
         }
-
-        .company-info strong {
-            color: var(--text-main);
-        }
-
-        .invoice-title-badge {
-            text-align: <?php echo $isEn ? 'right' : 'left'; ?>;
-        }
-
-        .invoice-badge-title {
+        .bill-to-line strong {
             display: inline-block;
-            background: var(--primary-light);
-            color: var(--primary-dark);
+            min-width: 80px;
+            color: #334155;
+        }
+
+        .invoice-details-box {
+            text-align: <?= $isEn ? 'right' : 'left' ?>;
+        }
+        .invoice-number-title {
             font-size: 20px;
             font-weight: 800;
-            padding: 6px 16px;
-            border-radius: 8px;
-            border: 1px solid var(--primary-border);
-            margin-bottom: 8px;
-        }
-
-        .invoice-meta-item {
-            font-size: 13px;
-            color: var(--text-muted);
-            margin-bottom: 3px;
-        }
-        .invoice-meta-item strong {
-            color: var(--text-main);
-        }
-
-        /* Bill To & Details Grid */
-        .info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 28px;
-        }
-
-        .info-card {
-            background: var(--bg-gray);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 16px;
-        }
-
-        .info-card h3 {
-            font-size: 14px;
-            color: var(--primary-green);
-            font-weight: 700;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            border-bottom: 1px dashed var(--border-color);
-            padding-bottom: 6px;
-        }
-
-        .info-card p {
-            font-size: 13px;
+            color: #0f172a;
             margin-bottom: 4px;
-            color: var(--text-main);
+            letter-spacing: 0.5px;
         }
-        .info-card p span {
-            color: var(--text-muted);
+        .meta-line {
+            font-size: 13px;
+            color: #334155;
+            margin-bottom: 2px;
         }
 
-        /* Status Pills */
-        .status-pill {
+        /* Status Pill */
+        .status-badge {
             display: inline-block;
             padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 700;
+            letter-spacing: 0.5px;
+            border-radius: 4px;
+            margin-top: 6px;
+            text-transform: uppercase;
         }
-        .status-paid {
-            background: #d1fae5;
-            color: #065f46;
+        .status-badge-paid {
+            background-color: #dcfce7;
+            color: #15803d;
+            border: 1px solid #86efac;
         }
-        .status-unpaid {
-            background: #fee2e2;
-            color: #991b1b;
+        .status-badge-partial {
+            background-color: #fef3c7;
+            color: #b45309;
+            border: 1px solid #fcd34d;
         }
-        .status-pending {
-            background: #fef3c7;
-            color: #92400e;
+        .status-badge-unpaid {
+            background-color: #fee2e2;
+            color: #b91c1c;
+            border: 1px solid #fca5a5;
         }
-        .status-cancelled {
-            background: #f3f4f6;
-            color: #4b5563;
+        .status-badge-pending {
+            background-color: #e0f2fe;
+            color: #0369a1;
+            border: 1px solid #7dd3fc;
         }
 
         /* Items Table */
-        .table-responsive {
-            width: 100%;
-            overflow-x: auto;
-            margin-bottom: 24px;
-        }
-
         .invoice-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 13px;
+            margin-bottom: 16px;
+            border: 1px solid #0f172a;
         }
-
         .invoice-table th {
-            background: var(--primary-green);
-            color: white;
+            border: 1px solid #0f172a;
+            padding: 8px 10px;
+            font-size: 13px;
             font-weight: 700;
-            padding: 10px 12px;
-            text-align: <?php echo $isEn ? 'left' : 'right'; ?>;
+            background-color: #f8fafc;
+            color: #0f172a;
+            text-align: center;
         }
-        .invoice-table th:first-child {
-            border-top-<?php echo $isEn ? 'left' : 'right'; ?>-radius: 6px;
+        .invoice-table th.col-desc {
+            text-align: <?= $isEn ? 'left' : 'right' ?>;
+            width: 65%;
         }
-        .invoice-table th:last-child {
-            border-top-<?php echo $isEn ? 'right' : 'left'; ?>-radius: 6px;
-            text-align: <?php echo $isEn ? 'right' : 'left'; ?>;
+        .invoice-table th.col-price {
+            width: 18%;
+        }
+        .invoice-table th.col-amount {
+            width: 17%;
         }
 
         .invoice-table td {
-            padding: 12px;
-            border-bottom: 1px solid var(--border-color);
-        }
-        .invoice-table td:last-child {
-            text-align: <?php echo $isEn ? 'right' : 'left'; ?>;
-        }
-
-        .invoice-table tbody tr:nth-child(even) {
-            background: #fafafa;
-        }
-
-        .item-name {
-            font-weight: 700;
-            color: var(--text-main);
-            font-size: 13.5px;
-        }
-        .item-desc {
+            border: 1px solid #0f172a;
+            padding: 10px;
+            vertical-align: top;
             font-size: 12px;
-            color: var(--text-muted);
-            margin-top: 3px;
         }
-
-        /* Summary & QR Section */
-        .summary-section {
-            display: grid;
-            grid-template-columns: 1.2fr 1fr;
-            gap: 24px;
-            align-items: flex-start;
-            margin-bottom: 30px;
+        .invoice-table td.col-desc {
+            text-align: <?= $isEn ? 'left' : 'right' ?>;
         }
-
-        .qr-and-notes {
-            display: flex;
-            gap: 16px;
-            background: var(--primary-light);
-            border: 1px solid var(--primary-border);
-            padding: 16px;
-            border-radius: 8px;
-        }
-
-        .qr-placeholder {
-            width: 110px;
-            height: 110px;
-            background: white;
-            border: 1px solid var(--primary-border);
-            padding: 6px;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-
-        .qr-placeholder img {
-            max-width: 100%;
-            max-height: 100%;
-        }
-
-        .notes-text {
-            font-size: 12.5px;
-            color: var(--text-main);
-        }
-        .notes-text h4 {
-            font-size: 13px;
-            color: var(--primary-dark);
-            margin-bottom: 4px;
-        }
-
-        .totals-card {
-            background: var(--bg-gray);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            overflow: hidden;
-        }
-
-        .totals-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 9px 16px;
-            font-size: 13px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .totals-row.grand-total {
-            background: var(--primary-green);
-            color: white;
-            font-size: 16px;
-            font-weight: 800;
-            border-bottom: none;
-            padding: 12px 16px;
-        }
-
-        /* Footer & Signatures */
-        .invoice-footer {
-            border-top: 1px solid var(--border-color);
-            padding-top: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-        }
-
-        .footer-note {
-            font-size: 12px;
-            color: var(--text-muted);
-            max-width: 60%;
-        }
-
-        .signature-box {
+        .invoice-table td.col-price,
+        .invoice-table td.col-amount {
             text-align: center;
-            width: 180px;
+            font-weight: 600;
+            white-space: pre-line;
         }
-        .signature-line {
-            height: 60px;
-            border-bottom: 1px dashed var(--text-muted);
+
+        .package-title {
+            font-weight: 700;
+            font-size: 13px;
+            color: #0f172a;
             margin-bottom: 6px;
         }
-        .signature-title {
-            font-size: 12px;
+        .package-desc {
+            font-size: 11.5px;
+            line-height: 1.6;
+            color: #1e293b;
+            white-space: pre-line;
+        }
+
+        /* Summary Calculations Table (Bottom Right) */
+        .summary-wrapper {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 20px;
+        }
+        .summary-table {
+            width: 45%;
+            border-collapse: collapse;
+            border: 1px solid #0f172a;
+        }
+        .summary-table td {
+            border: 1px solid #0f172a;
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+        .summary-label {
             font-weight: 700;
-            color: var(--text-main);
+            color: #0f172a;
+            width: 50%;
+        }
+        .summary-val {
+            text-align: <?= $isEn ? 'right' : 'left' ?>;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .balance-highlight {
+            background-color: #f8fafc;
+        }
+        .balance-highlight .summary-val {
+            color: <?= ((float)$invoice['remaining_balance'] > 0) ? '#b91c1c' : '#15803d' ?>;
+            font-size: 14px;
+        }
+
+        /* Bottom Suggestions Box */
+        .suggestions-box {
+            border: 1px solid #0f172a;
+            padding: 10px 14px;
+            margin-bottom: 24px;
+            background: #ffffff;
+            max-width: 72%;
+        }
+        .suggestions-text {
+            font-size: 12px;
+            color: #1e293b;
+            line-height: 1.5;
+        }
+        .gcash-highlight {
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        /* Thank you & Signature Block */
+        .signoff-section {
+            margin-bottom: 24px;
+        }
+        .thank-you-text {
+            font-size: 13px;
+            font-weight: 600;
+            color: #0f172a;
+            margin-bottom: 4px;
+        }
+        .yours-truly {
+            font-size: 13px;
+            color: #334155;
+            margin-bottom: 4px;
+        }
+        .signature-container {
+            margin: 6px 0;
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+        }
+        .signature-script {
+            font-family: 'Alex Brush', cursive, sans-serif;
+            font-size: 34px;
+            color: #1e3a8a;
+            transform: rotate(-3deg);
+            display: inline-block;
+            user-select: none;
+        }
+        .signature-line {
+            width: 220px;
+            border-bottom: 1px solid #0f172a;
+            margin-bottom: 6px;
+        }
+        .manager-name {
+            font-size: 13px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .manager-title {
+            font-size: 11.5px;
+            color: #475569;
+        }
+        .manager-cert {
+            font-size: 10.5px;
+            color: #64748b;
+            font-weight: 600;
+        }
+
+        /* Bottom Fixed Footer */
+        .invoice-page-footer {
+            border-top: 2px solid #0f172a;
+            padding-top: 8px;
+            text-align: center;
+            font-size: 11px;
+            color: #334155;
+            margin-top: auto;
+        }
+        .invoice-page-footer a {
+            color: #0284c7;
+            text-decoration: underline;
         }
 
         /* Print Media Styles */
         @media print {
             body {
-                background: white;
-                padding: 0;
+                background: #ffffff !important;
+                padding: 0 !important;
             }
             .no-print-bar {
                 display: none !important;
             }
-            .invoice-box {
-                box-shadow: none;
-                border: none;
-                border-top: 6px solid var(--primary-green);
-                padding: 20px 0;
-                max-width: 100%;
-            }
-            @page {
-                size: A4;
-                margin: 15mm;
-            }
-        }
-
-        @media (max-width: 768px) {
-            body {
-                padding: 12px;
-            }
-            .invoice-box {
-                padding: 20px;
-            }
-            .invoice-header {
-                flex-direction: column;
-                gap: 16px;
-            }
-            .invoice-title-badge {
-                text-align: <?php echo $isEn ? 'left' : 'right'; ?>;
-            }
-            .info-grid {
-                grid-template-columns: 1fr;
-            }
-            .summary-section {
-                grid-template-columns: 1fr;
-            }
-            .invoice-footer {
-                flex-direction: column;
-                gap: 20px;
-                align-items: flex-start;
+            .invoice-page {
+                box-shadow: none !important;
+                margin: 0 !important;
+                width: 100% !important;
+                min-height: 100vh !important;
+                padding: 12mm 15mm 12mm 15mm !important;
             }
         }
     </style>
 </head>
 <body>
 
-    <!-- Top Action Bar (Hidden during Print) -->
-    <div class="no-print-bar">
-        <div style="display:flex; align-items:center; gap: 10px;">
-            <a href="index.php" class="btn btn-outline">
-                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="<?php echo $isEn ? 'M10 19l-7-7m0 0l7-7m-7 7h18' : 'M14 5l7 7m0 0l-7 7m7-7H3'; ?>"/></svg>
-                <?php echo $isEn ? 'Back to Dashboard' : 'العودة للوحة التحكم'; ?>
-            </a>
-            <span style="font-weight: 700; color: var(--primary-green);">
-                <?php echo $isEn ? "Tax Invoice #{$invoice['invoice_number']}" : "فاتورة ضريبية #{$invoice['invoice_number']}"; ?>
-            </span>
-        </div>
-        <div style="display: flex; gap: 8px;">
-            <!-- Language Switcher in Print -->
-            <a href="print.php?id=<?php echo $id; ?>&lang=<?php echo $isEn ? 'ar' : 'en'; ?>" class="btn btn-lang">
-                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/></svg>
-                <?php echo $isEn ? 'عربي (Arabic)' : 'English (إنجليزي)'; ?>
-            </a>
-
-            <button onclick="window.print()" class="btn btn-green">
-                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
-                <?php echo $isEn ? 'Print / Export PDF' : 'طباعة / تصدير PDF'; ?>
-            </button>
-        </div>
+<!-- Interactive Toolbar (Hidden in Print) -->
+<div class="no-print-bar">
+    <div class="bar-left">
+        <a href="index.php" class="btn-action btn-secondary">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+            <?= $isEn ? 'Back to Dashboard' : 'العودة للوحة التحكم' ?>
+        </a>
+        <button onclick="window.print()" class="btn-action btn-primary">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+            <?= $isEn ? 'Print Invoice' : 'طباعة الفاتورة' ?>
+        </button>
     </div>
+    <div class="bar-right">
+        <?php if ($isEn): ?>
+            <a href="print.php?id=<?= $id ?>&lang=ar" class="btn-action btn-secondary">
+                🌐 Switch to Arabic (العربية)
+            </a>
+        <?php else: ?>
+            <a href="print.php?id=<?= $id ?>&lang=en" class="btn-action btn-secondary">
+                🌐 Switch to English
+            </a>
+        <?php endif; ?>
+    </div>
+</div>
 
-    <!-- Printable Invoice Page -->
-    <div class="invoice-box" id="printableInvoice">
-        
-        <!-- Header -->
-        <div class="invoice-header">
-            <div class="company-info">
-                <h1><?php echo htmlspecialchars($companyName); ?></h1>
-                <?php if (!empty($companyCr)): ?>
-                    <p><strong><?php echo $isEn ? 'C.R. Number:' : 'السجل التجاري:'; ?></strong> <?php echo htmlspecialchars($companyCr); ?></p>
-                <?php endif; ?>
-                <?php if (!empty($companyVat)): ?>
-                    <p><strong><?php echo $isEn ? 'VAT Number:' : 'الرقم الضريبي:'; ?></strong> <?php echo htmlspecialchars($companyVat); ?></p>
-                <?php endif; ?>
-                <?php if (!empty($companyPhone)): ?>
-                    <p><strong><?php echo $isEn ? 'Phone:' : 'الهاتف:'; ?></strong> <?php echo htmlspecialchars($companyPhone); ?></p>
-                <?php endif; ?>
-                <?php if (!empty($companyAddress)): ?>
-                    <p><strong><?php echo $isEn ? 'Address:' : 'العنوان:'; ?></strong> <?php echo htmlspecialchars($companyAddress); ?></p>
-                <?php endif; ?>
+<!-- Main Printable A4 Invoice Container -->
+<div class="invoice-page">
+
+    <div>
+        <!-- Top Centered Header with YARAMAY Emblem -->
+        <header class="brand-header">
+            <div class="logo-emblem">
+                <!-- Authentic Red & Blue YARAMAY "M" Logo -->
+                <svg width="68" height="52" viewBox="0 0 100 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Left Blue Wing -->
+                    <path d="M12 75 L38 12 L50 40 L35 75 Z" fill="#1e3a8a"/>
+                    <!-- Right Blue Wing -->
+                    <path d="M88 75 L62 12 L50 40 L65 75 Z" fill="#1e3a8a"/>
+                    <!-- Center Red Diamond/Peak -->
+                    <path d="M50 40 L38 12 L62 12 Z" fill="#dc2626"/>
+                    <!-- Inner Red Accent -->
+                    <polygon points="50,22 42,12 58,12" fill="#ef4444"/>
+                </svg>
+                <div class="logo-title">Y A R A M A Y</div>
+                <div class="logo-subtitle">Computer Maintenance Services</div>
             </div>
-
-            <div class="invoice-title-badge">
-                <div class="invoice-badge-title"><?php echo $isEn ? 'TAX INVOICE' : 'فاتورة ضريبية'; ?></div>
-                <div class="invoice-meta-item">
-                    <strong><?php echo $isEn ? 'Invoice #:' : 'رقم الفاتورة:'; ?></strong> <span style="font-family: monospace; font-size:14px; font-weight:700; color:var(--primary-green);"><?php echo htmlspecialchars($invoice['invoice_number']); ?></span>
-                </div>
-                <div class="invoice-meta-item">
-                    <strong><?php echo $isEn ? 'Issue Date:' : 'تاريخ الإصدار:'; ?></strong> <?php echo htmlspecialchars($invoice['issue_date']); ?>
-                </div>
-                <?php if (!empty($invoice['due_date'])): ?>
-                <div class="invoice-meta-item">
-                    <strong><?php echo $isEn ? 'Due Date:' : 'تاريخ الاستحقاق:'; ?></strong> <?php echo htmlspecialchars($invoice['due_date']); ?>
-                </div>
-                <?php endif; ?>
-                <div class="invoice-meta-item" style="margin-top:6px;">
-                    <strong><?php echo $isEn ? 'Payment Status:' : 'حالة الدفع:'; ?></strong> <span class="status-pill <?php echo $statusInfo['class']; ?>"><?php echo $statusInfo['text']; ?></span>
-                </div>
+            <div class="brand-top-contact">
+                #19 Street Brgy. San Andres Cainta Rizal Cambridge C5 -1G: Contact # +639075251376 (SMS) +966508624264<br>
+                <a href="https://<?= htmlspecialchars($companyWebsite) ?>" target="_blank"><?= htmlspecialchars($companyWebsite) ?></a>
             </div>
-        </div>
+        </header>
 
-        <!-- Bill To & Details -->
-        <div class="info-grid">
-            <div class="info-card">
-                <h3>
-                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                    <?php echo $isEn ? 'Bill To (Client)' : 'فاتورة إلى (العميل)'; ?>
-                </h3>
-                <p><strong><?php echo htmlspecialchars($invoice['client_name'] ?? ($isEn ? 'Cash Customer' : 'عميل نقدي')); ?></strong></p>
+        <!-- Invoice Meta Details & Bill To -->
+        <div class="invoice-meta-row">
+            <div class="bill-to-box">
+                <div class="bill-to-title"><?= $isEn ? 'Bill to:' : 'فاتورة إلى:' ?></div>
+                <div class="bill-to-line">
+                    <strong><?= $isEn ? 'Name –' : 'الاسم –' ?></strong>
+                    <span><?= htmlspecialchars($invoice['contact_person'] ?? $invoice['client_name']) ?></span>
+                </div>
+                <div class="bill-to-line">
+                    <strong><?= $isEn ? 'Company –' : 'الشركة –' ?></strong>
+                    <span><?= htmlspecialchars($invoice['client_name']) ?></span>
+                </div>
+                <div class="bill-to-line">
+                    <strong><?= $isEn ? 'Address –' : 'العنوان –' ?></strong>
+                    <span><?= htmlspecialchars($invoice['client_address'] ?? 'Manila, Philippines') ?></span>
+                </div>
                 <?php if (!empty($invoice['client_phone'])): ?>
-                    <p><span><?php echo $isEn ? 'Phone:' : 'الهاتف:'; ?></span> <?php echo htmlspecialchars($invoice['client_phone']); ?></p>
-                <?php endif; ?>
-                <?php if (!empty($invoice['client_email'])): ?>
-                    <p><span><?php echo $isEn ? 'Email:' : 'البريد الإلكتروني:'; ?></span> <?php echo htmlspecialchars($invoice['client_email']); ?></p>
-                <?php endif; ?>
-                <?php if (!empty($invoice['client_address'])): ?>
-                    <p><span><?php echo $isEn ? 'Address:' : 'العنوان:'; ?></span> <?php echo htmlspecialchars($invoice['client_address']); ?></p>
-                <?php endif; ?>
-                <?php if (!empty($invoice['client_tax'])): ?>
-                    <p><span><?php echo $isEn ? 'Client Tax / VAT:' : 'الرقم الضريبي للعميل:'; ?></span> <?php echo htmlspecialchars($invoice['client_tax']); ?></p>
+                <div class="bill-to-line">
+                    <strong><?= $isEn ? 'Phone –' : 'الهاتف –' ?></strong>
+                    <span><?= htmlspecialchars($invoice['client_phone']) ?></span>
+                </div>
                 <?php endif; ?>
             </div>
 
-            <div class="info-card">
-                <h3>
-                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                    <?php echo $isEn ? 'Payment & Settlement Details' : 'تفاصيل السداد'; ?>
-                </h3>
-                <p><span><?php echo $isEn ? 'Payment Method:' : 'طريقة الدفع:'; ?></span> <strong><?php echo $paymentMethodText; ?></strong></p>
-                <p><span><?php echo $isEn ? 'Currency:' : 'العملة:'; ?></span> <?php echo htmlspecialchars($currency); ?></p>
-                <p><span><?php echo $isEn ? 'Registered At:' : 'تاريخ التسجيل:'; ?></span> <?php echo date('Y-m-d H:i', strtotime($invoice['created_at'])); ?></p>
-                <?php if (!empty($invoice['notes'])): ?>
-                <p style="margin-top: 6px;"><span><?php echo $isEn ? 'Notes:' : 'ملاحظات:'; ?></span> <?php echo nl2br(htmlspecialchars($invoice['notes'])); ?></p>
-                <?php endif; ?>
+            <div class="invoice-details-box">
+                <div class="meta-line">
+                    <strong><?= $isEn ? 'Date:' : 'التاريخ:' ?></strong>
+                    <?= date('F d, Y', strtotime($invoice['issue_date'])) ?>
+                </div>
+                <div class="invoice-number-title">
+                    <?= $isEn ? 'Invoice #:' : 'رقم الفاتورة:' ?> <?= htmlspecialchars($invoice['invoice_number']) ?>
+                </div>
+                <div>
+                    <span class="status-badge <?= $statusInfo['class'] ?>"><?= $statusInfo['text'] ?></span>
+                </div>
             </div>
         </div>
 
-        <!-- Items Table -->
-        <div class="table-responsive">
-            <table class="invoice-table">
-                <thead>
-                    <tr>
-                        <th style="width: 40px;">#</th>
-                        <th><?php echo $isEn ? 'Item & Description' : 'البند والوصف'; ?></th>
-                        <th style="width: 70px; text-align:center;"><?php echo $isEn ? 'Qty' : 'الكمية'; ?></th>
-                        <th style="width: 100px;"><?php echo $isEn ? 'Unit Price' : 'سعر الوحدة'; ?></th>
-                        <th style="width: 80px;"><?php echo $isEn ? 'Discount' : 'الخصم'; ?></th>
-                        <th style="width: 70px; text-align:center;"><?php echo $isEn ? 'VAT %' : 'الضريبة'; ?></th>
-                        <th style="width: 130px;"><?php echo $isEn ? 'Total (Incl. VAT)' : 'الإجمالي (شامل)'; ?></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (empty($items)): ?>
-                    <tr>
-                        <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 20px;">
-                            <?php echo $isEn ? 'No items found in this invoice' : 'لا توجد بنود في هذه الفاتورة'; ?>
-                        </td>
-                    </tr>
-                    <?php else: ?>
-                        <?php foreach ($items as $index => $item): ?>
-                        <tr>
-                            <td><?php echo $index + 1; ?></td>
-                            <td>
-                                <div class="item-name"><?php echo htmlspecialchars($item['item_name']); ?></div>
-                                <?php if (!empty($item['description'])): ?>
-                                    <div class="item-desc"><?php echo htmlspecialchars($item['description']); ?></div>
-                                <?php endif; ?>
-                            </td>
-                            <td style="text-align: center;"><?php echo $item['quantity']; ?></td>
-                            <td><?php echo number_format($item['unit_price'], 2); ?> <?php echo $currency; ?></td>
-                            <td><?php echo number_format($item['discount'], 2); ?> <?php echo $currency; ?></td>
-                            <td style="text-align: center;"><?php echo $item['tax_rate']; ?>%</td>
-                            <td style="font-weight: 700; color: var(--primary-green);">
-                                <?php echo number_format($item['total'], 2); ?> <?php echo $currency; ?>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </tbody>
+        <!-- Description Table -->
+        <table class="invoice-table">
+            <thead>
+                <tr>
+                    <th class="col-desc"><?= $isEn ? 'Description' : 'الوصف والخدمات' ?></th>
+                    <th class="col-price"><?= $isEn ? 'Price' : 'السعر' ?></th>
+                    <th class="col-amount"><?= $isEn ? 'Amount Due' : 'المبلغ المستحق' ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($items as $it): ?>
+                <tr>
+                    <td class="col-desc">
+                        <div class="package-title"><?= htmlspecialchars($it['item_name']) ?></div>
+                        <div class="package-desc"><?= nl2br(htmlspecialchars($it['description'])) ?></div>
+                    </td>
+                    <td class="col-price">
+                        <?php if (!empty($invoice['price_note'])): ?>
+                            <?= nl2br(htmlspecialchars($invoice['price_note'])) ?>
+                        <?php else: ?>
+                            PHP <?= number_format($it['unit_price'], 2) ?>
+                        <?php endif; ?>
+                    </td>
+                    <td class="col-amount">
+                        <?php if (!empty($invoice['amount_due_note'])): ?>
+                            <?= nl2br(htmlspecialchars($invoice['amount_due_note'])) ?>
+                        <?php else: ?>
+                            <?= number_format($it['total'], 2) ?> PHP
+                        <?php endif; ?>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+
+        <!-- Calculations Summary Box (Total Cost, Payment, Balance) -->
+        <div class="summary-wrapper">
+            <table class="summary-table">
+                <tr>
+                    <td class="summary-label"><?= $isEn ? 'Total Cost' : 'التكلفة الإجمالية' ?></td>
+                    <td class="summary-val">php <?= $totalCostFormatted ?></td>
+                </tr>
+                <?php if (!empty($invoice['installment_months']) && (int)$invoice['installment_months'] > 1): ?>
+                <tr>
+                    <td class="summary-label"><?= $isEn ? 'Payment Plan' : 'خطة التقسيط' ?></td>
+                    <td class="summary-val" style="font-size: 11px; color: #1e3a8a;">
+                        <?= (int)$invoice['installment_months'] ?> <?= $isEn ? 'Months' : 'أشهر' ?> 
+                        (₱<?= number_format((float)$invoice['grand_total'], 2) ?> ÷ <?= (int)$invoice['installment_months'] ?> = ₱<?= number_format((float)$invoice['monthly_payment'], 2) ?>/<?= $isEn ? 'mo' : 'شهر' ?>)
+                    </td>
+                </tr>
+                <?php endif; ?>
+                <tr>
+                    <td class="summary-label"><?= $isEn ? 'Payment' : 'المبلغ المسدد' ?></td>
+                    <td class="summary-val">Php <?= $paymentFormatted ?></td>
+                </tr>
+                <tr class="balance-highlight">
+                    <td class="summary-label"><?= $isEn ? 'Balance' : 'المتبقي (الرصيد)' ?></td>
+                    <td class="summary-val">Php <?= $balanceFormatted ?></td>
+                </tr>
             </table>
         </div>
 
-        <!-- Summary & QR -->
-        <div class="summary-section">
-            <div class="qr-and-notes">
-                <div class="qr-placeholder" id="qrContainer">
-                    <img id="qrImg" src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=<?php echo urlencode($qrData); ?>" alt="QR Code" onerror="this.style.display='none'; document.getElementById('qrFallback').style.display='block';">
-                    <div id="qrFallback" style="display:none; text-align:center; font-size:11px; color:var(--text-muted);">
-                        <?php echo $isEn ? 'ZATCA E-Invoice QR Code' : 'QR متوافق مع هيئة الزكاة والضريبة'; ?>
+        <!-- Suggestions & Payment Transfer Note Box -->
+        <div class="suggestions-box">
+            <div class="suggestions-text">
+                <?= $isEn ? 'We are open for your suggestions on improving our services with you.' : 'نرحب دائماً باقتراحاتكم لتطوير خدماتنا معكم.' ?><br>
+                <?= $isEn ? 'Payment can be transferred through Cash or GCash:' : 'يمكن سداد المبلغ نقداً أو عبر GCash:' ?><br>
+                <span class="gcash-highlight"><?= $isEn ? 'GCash Account Name:' : 'اسم حساب GCash:' ?> Ferdenand Sabado</span><br>
+                <span class="gcash-highlight"><?= $isEn ? 'GCash Mobile #:' : 'رقم GCash:' ?> <?= htmlspecialchars($companyGcash) ?></span>
+                <?php if (!empty($invoice['partner_assigned'])): ?>
+                    <div style="margin-top: 4px; font-size: 11px; color: #475569;">
+                        <?= $isEn ? 'Account Officer / Share:' : 'المسؤول / الشريك:' ?>
+                        <strong><?= $invoice['partner_assigned'] === 'both' ? 'Both (Mr. Ibraheem & Mr. Fawas - 50/50 Split)' : ($invoice['partner_assigned'] === 'ibraheem' ? 'Mr. Ibraheem (100%)' : 'Mr. Fawas (100%)') ?></strong>
                     </div>
-                </div>
-                <div class="notes-text">
-                    <h4><?php echo $isEn ? 'Electronic Verification QR' : 'التحقق الإلكتروني من الفاتورة'; ?></h4>
-                    <p><?php echo $isEn ? 'This encrypted QR code contains verified invoice and VAT data in compliance with e-invoicing regulations.' : 'هذا الرمز المشفر يتضمن بيانات الفاتورة المعتمدة وضريبة القيمة المضافة وفق متطلبات الفوترة الإلكترونية.'; ?></p>
-                    <p style="margin-top:6px; font-size: 11px; color: var(--text-muted);">
-                        <?php echo $isEn ? 'Grand Total:' : 'المجموع الكلي:'; ?> <?php echo number_format($invoice['grand_total'], 2); ?> <?php echo $currency; ?>
-                    </p>
-                </div>
-            </div>
-
-            <div class="totals-card">
-                <div class="totals-row">
-                    <span><?php echo $isEn ? 'Subtotal (Excl. VAT):' : 'المجموع الفرعي (غير شامل الضريبة):'; ?></span>
-                    <strong><?php echo number_format($invoice['subtotal'], 2); ?> <?php echo $currency; ?></strong>
-                </div>
-                <?php if ($invoice['discount'] > 0): ?>
-                <div class="totals-row">
-                    <span><?php echo $isEn ? 'Total Discount:' : 'إجمالي الخصم:'; ?></span>
-                    <strong style="color: #dc2626;">- <?php echo number_format($invoice['discount'], 2); ?> <?php echo $currency; ?></strong>
-                </div>
                 <?php endif; ?>
-                <div class="totals-row">
-                    <span><?php echo $isEn ? 'VAT (15%):' : 'ضريبة القيمة المضافة (15%):'; ?></span>
-                    <strong><?php echo number_format($invoice['tax_amount'], 2); ?> <?php echo $currency; ?></strong>
-                </div>
-                <div class="totals-row grand-total">
-                    <span><?php echo $isEn ? 'Grand Total:' : 'المجموع الإجمالي النهائي:'; ?></span>
-                    <span><?php echo number_format($invoice['grand_total'], 2); ?> <?php echo $currency; ?></span>
-                </div>
             </div>
         </div>
 
-        <!-- Footer -->
-        <div class="invoice-footer">
-            <div class="footer-note">
-                <p><?php echo nl2br(htmlspecialchars($footerNote)); ?></p>
+        <!-- Thank you & Sign-off Block -->
+        <div class="signoff-section">
+            <div class="thank-you-text"><?= $isEn ? 'Thanking you for doing Business with us!' : 'شكراً لتعاملكم واختياركم لنا!' ?></div>
+            <div class="yours-truly"><?= $isEn ? 'Yours Truly,' : 'مع خالص التحية،' ?></div>
+            
+            <div class="signature-container">
+                <span class="signature-script">Ferdenand Sabado</span>
             </div>
-            <div class="signature-box">
-                <div class="signature-line"></div>
-                <div class="signature-title"><?php echo $isEn ? 'Authorized Stamp & Signature' : 'الختم والتوقيع المعتمد'; ?></div>
-            </div>
+            <div class="signature-line"></div>
+            
+            <div class="manager-name"><?= htmlspecialchars($companyManager) ?></div>
+            <div class="manager-title"><?= htmlspecialchars($companyTitle) ?></div>
+            <?php if (!empty($companyCert)): ?>
+                <div class="manager-cert"><?= htmlspecialchars($companyCert) ?></div>
+            <?php endif; ?>
         </div>
-
     </div>
 
-    <?php if (isset($_GET['autoprint'])): ?>
-    <script>
-        window.addEventListener('DOMContentLoaded', () => {
-            window.print();
-        });
-    </script>
-    <?php endif; ?>
+    <!-- Page Footer -->
+    <footer class="invoice-page-footer">
+        #19 Street Brgy. San Andres Cainta Rizal Cambridge C5 -1G: Contact # +639075251376 (SMS) +966508624264<br>
+        <a href="https://<?= htmlspecialchars($companyWebsite) ?>" target="_blank"><?= htmlspecialchars($companyWebsite) ?></a>
+    </footer>
+
+</div>
 
 </body>
 </html>

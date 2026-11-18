@@ -1,329 +1,443 @@
 /**
- * Arabic & English Invoice Record System
- * JavaScript Application Core with Bilingual Support
+ * YARAMAY Computer Maintenance Services
+ * Invoice Record System - Core JavaScript Application
+ * Features:
+ *  - Official YARAMAY Navy Blue & Crimson Red Brand Identity
+ *  - Partner Share Division (Mr. Ibraheem / Mr. Fawas / Both 50-50 Split)
+ *  - Installment Plan Formula (Full Payment, 3 Months, 6 Months, Custom Term)
+ *  - GCash: Ferdenand Sabado (09617190588) or Cash options
+ *  - Bilingual Support: English (Default) & Arabic
  */
 
 const App = {
-    // Current Language: 'ar' or 'en'
-    lang: localStorage.getItem('app_lang') || 'ar',
+    // Current Language: defaults to English
+    lang: localStorage.getItem('app_lang') || 'en',
 
     currentView: 'dashboard',
-    currency: 'ر.س',
-    taxRate: 15,
+    currency: 'PHP',
+    taxRate: 0,
     settings: {},
     clients: [],
     products: [],
     invoices: [],
+    users: [],
     editingInvoiceId: null,
 
     // Bilingual Dictionary
     i18n: {
+        en: {
+            brand_title: 'YARAMAY',
+            brand_subtitle: 'Computer Maintenance Services',
+            version_text: 'v2.7 Corporate Edition',
+            page_subtitle: 'Billing, Client Dossier & Invoice Management System',
+
+            nav_dashboard: 'Admin Dashboard',
+            nav_invoices: 'Invoices Record',
+            nav_clients: 'Clients Directory',
+            nav_users: 'Admin Users',
+            nav_client_portal: 'Client Invoice Portal',
+            nav_products: 'Products & Services',
+            nav_settings: 'Company Settings',
+            nav_backup: 'Backup & Restore',
+
+            title_dashboard: 'Admin Dashboard & Partner Earnings',
+            title_invoices: 'Invoices Record & Payment Management',
+            title_clients: 'Clients Directory & Financial Statements',
+            title_users: 'Admin Users & Access Control',
+            title_client_portal: 'Client Invoice Request & Installment Plan',
+            title_products: 'Products & Services Catalog',
+            title_settings: 'Company & Invoicing Settings',
+            title_backup: 'Data Backup & Recovery',
+
+            btn_new_invoice: 'New Invoice',
+            btn_export_excel: 'Export Excel',
+            btn_view_all_invoices: 'View All Invoices',
+            btn_add_client: 'Add Client',
+            btn_add_product: 'Add Service',
+            btn_save_invoice: 'Save & Confirm Invoice',
+            btn_save_client: 'Save Client',
+            btn_save_product: 'Save Service',
+            btn_save_settings: 'Save Settings',
+            btn_cancel: 'Cancel',
+            btn_close: 'Close',
+            btn_reset: 'Reset Filters',
+            btn_add_item: 'Add Line Item',
+            btn_edit: 'Edit',
+            btn_delete: 'Delete',
+            btn_view: 'View',
+            btn_print: 'Print',
+            btn_print_official: 'Print YARAMAY Invoice',
+            btn_whatsapp: 'Send WhatsApp',
+            btn_download_backup: 'Download Backup (JSON)',
+            btn_restore_now: 'Restore Backup Now',
+            btn_record_payment: 'Record Payment',
+            btn_view_dossier: 'Client Dossier',
+            btn_submit_request: 'Submit Invoice Request',
+
+            kpi_total_sales: 'Total Invoiced (Price)',
+            kpi_total_sub: 'Grand total of issued invoices',
+            kpi_paid_total: 'Total Payments Received',
+            kpi_paid_sub: 'Successfully collected funds',
+            kpi_unpaid_total: 'Remaining Balance Due',
+            kpi_unpaid_sub: 'Total outstanding receivables',
+            kpi_client_count: 'Total Clients',
+            kpi_client_sub: 'Registered corporate accounts',
+            kpi_invoice_count: 'Total Invoices',
+            kpi_invoice_sub: 'Issued transaction documents',
+
+            partner_split_title: 'Partner Revenue Division (Mr. Ibraheem & Mr. Fawas)',
+            partner_split_desc: 'Individual assignments credit 100% of collected client payments to that partner. When set to Both, payments are divided equally (50% / 50%).',
+            kpi_ibraheem_total: 'Mr. Ibraheem Total Share',
+            kpi_fawas_total: 'Mr. Fawas Total Share',
+
+            client_info_summary_title: 'Client Information & Receivables Overview',
+            recent_invoices_title: 'Recent Invoices & Transactions',
+            client_portal_headline: 'Client Fill-up Form for Invoice Generation',
+            client_portal_sub: 'Fill out this form to request or generate an invoice with full payment, 3 months, or 6 months installments.',
+
+            search_invoice_placeholder: 'Search by invoice #, client name, contact, phone...',
+            search_client_placeholder: 'Search clients by company name, contact, phone, address...',
+            status_all: 'All Statuses',
+            status_paid: 'Paid in Full',
+            status_partial: 'Partial Payment',
+            status_unpaid: 'Unpaid (Due)',
+            status_pending: 'Pending',
+            status_cancelled: 'Cancelled',
+            date_to: 'To',
+
+            partner_all: 'All Partners',
+            partner_both: 'Both (Mr. Ibraheem & Mr. Fawas - 50/50 Split)',
+            partner_ibraheem: 'Mr. Ibraheem',
+            partner_fawas: 'Mr. Fawas',
+
+            term_full: 'Full Payment (1x)',
+            term_3_months: '3 Months Installment',
+            term_6_months: '6 Months Installment',
+            term_custom: 'Custom Term (Months)',
+
+            th_invoice_num: 'Invoice #',
+            th_client: 'Client / Company',
+            th_contact_person: 'Contact Person',
+            th_issue_date: 'Issue Date',
+            th_due_date: 'Due Date',
+            th_price: 'Total Cost / Price',
+            th_paid: 'Amount Paid',
+            th_balance: 'Remaining Balance',
+            th_plan: 'Payment Plan / Formula',
+            th_partner: 'Assigned Partner',
+            th_status: 'Status',
+            th_actions: 'Actions',
+            th_phone: 'Phone / Mobile',
+            th_email: 'Email',
+            th_address: 'Address / Location',
+            th_tax_num: 'Tax ID / TIN',
+            th_invoices_count: 'Invoices',
+            th_item_name: 'Item / Service Name',
+            th_description: 'Description',
+            th_unit_price: 'Unit Price',
+            th_tax_rate: 'Tax %',
+            th_quantity: 'Qty',
+            th_discount: 'Discount',
+
+            lbl_invoice_num: 'Invoice Number *',
+            lbl_client: 'Select Client *',
+            lbl_or_new_client: 'Or Create New Client',
+            lbl_new_client_name: 'Company / Organization Name',
+            lbl_new_contact_person: 'Contact Person Name (e.g. Mr. Allan Rom)',
+            lbl_new_client_phone: 'Phone / Mobile',
+            lbl_new_client_address: 'Address / City',
+            lbl_issue_date: 'Issue Date *',
+            lbl_due_date: 'Due Date',
+            lbl_status: 'Invoice Status *',
+            lbl_payment_method: 'Payment Channel *',
+            lbl_payment_term: 'Payment Plan / Term *',
+            lbl_partner_assigned: 'Partner Assignment / Division *',
+            lbl_invoice_items: 'Invoice Line Items & Services',
+            lbl_price_note: 'Price Note (e.g. PHP 20,000 / 3 Months = PHP 6,666.67 / Month)',
+            lbl_amount_due_note: 'Amount Due Note',
+            lbl_paid_amount: 'Amount Paid (PHP)',
+            lbl_remaining_balance: 'Remaining Balance (PHP)',
+            lbl_notes_terms: 'Payment Transfer Terms & Instructions',
+            calc_subtotal: 'Subtotal:',
+            calc_discount: 'Total Discount:',
+            calc_tax: 'VAT / Tax:',
+            calc_grand_total: 'Total Cost / Price:',
+            calc_monthly: 'Monthly Installment:',
+
+            method_gcash: 'GCash (Ferdenand Sabado - 09617190588)',
+            method_cash: 'Cash Payment',
+
+            client_modal_title_new: 'Add New Client',
+            client_modal_title_edit: 'Edit Client Information',
+            lbl_client_name: 'Company / Organization Name *',
+            lbl_contact_person: 'Contact Person Name (e.g. Mr. Allan Rom, Ms. Pilar Corporal) *',
+            lbl_client_phone: 'Phone / Mobile Number',
+            lbl_client_email: 'Email Address',
+            lbl_client_tax: 'TIN / Tax Number (If available)',
+            lbl_client_address: 'Complete Address / Location',
+
+            product_modal_title_new: 'Add New Product / Service',
+            product_modal_title_edit: 'Edit Product / Service',
+            lbl_product_name: 'Service Name *',
+            lbl_product_price: 'Default Price (PHP) *',
+            lbl_product_tax: 'Tax Rate (%)',
+            lbl_product_desc: 'Service Package Description & Inclusions',
+
+            settings_title: 'Company Information & Billing Profile',
+            lbl_company_name: 'Company Name *',
+            lbl_company_cr: 'Registration / Unit *',
+            lbl_company_vat: 'Tax / TIN Number',
+            lbl_company_phone: 'Contact Numbers (SMS/Call)',
+            lbl_company_email: 'Billing Email Address',
+            lbl_company_manager: 'General Manager Name *',
+            lbl_company_title: 'Manager Title',
+            lbl_company_cert: 'Certifications',
+            lbl_company_website: 'Website Domain',
+            lbl_company_gcash: 'GCash Number *',
+            lbl_gcash_account: 'GCash Account Name *',
+            lbl_currency: 'Currency Symbol / Code',
+            lbl_default_tax: 'Default Tax Rate (%)',
+            lbl_invoice_prefix: 'Invoice Number Prefix',
+            lbl_company_address: 'Complete Company Address',
+            lbl_invoice_footer: 'Default Payment Note & Suggestions',
+
+            backup_export_title: 'Export Full Database Backup',
+            backup_export_desc: 'Download a complete JSON snapshot containing all clients, invoices, service items, and company settings.',
+            backup_import_title: 'Restore Database Backup',
+            backup_import_desc: 'Upload a previously exported JSON backup to restore all data.',
+            confirm_restore: 'WARNING: Restoring will overwrite all current clients and invoices with backup data. Proceed?',
+
+            toast_invoice_saved: 'Invoice saved successfully',
+            toast_invoice_deleted: 'Invoice deleted successfully',
+            toast_status_updated: 'Invoice status updated successfully',
+            toast_payment_recorded: 'Payment recorded and partner shares updated successfully',
+            toast_client_saved: 'Client information saved successfully',
+            toast_client_deleted: 'Client deleted successfully',
+            toast_product_saved: 'Service package saved successfully',
+            toast_product_deleted: 'Service package deleted successfully',
+            toast_settings_saved: 'Settings updated successfully',
+            toast_item_required: 'Invoice must contain at least one service item',
+            confirm_delete_invoice: 'Are you sure you want to delete this invoice?',
+            confirm_delete_client: 'Are you sure you want to delete this client? Associated invoices will remain with client reference cleared.',
+            confirm_delete_product: 'Are you sure you want to delete this service?',
+            cash_client: 'Direct Client',
+            invoice_word: 'Invoices',
+            no_records: 'No matching records found',
+            no_clients: 'No registered clients found',
+            no_products: 'No products or services found'
+        },
         ar: {
-            brand_title: 'نظام الفواتير',
-            brand_subtitle: 'الواحة للحلول التجارية',
-            version_text: 'الإصدار 2.5 الأخضر المطور',
-            page_subtitle: 'نظام الفواتير الإلكترونية المتكامل للهواتف والكمبيوتر',
-            
+            brand_title: 'ياراماي',
+            brand_subtitle: 'لخدمات صيانة الحاسب والأنظمة',
+            version_text: 'الإصدار 2.7 المطور',
+            page_subtitle: 'نظام الفواتير الإلكترونية وإدارة حسابات الشركاء والعملاء',
+
             nav_dashboard: 'لوحة التحكم',
             nav_invoices: 'سجل الفواتير',
             nav_clients: 'دليل العملاء',
+            nav_users: 'مدراء النظام',
+            nav_client_portal: 'بوابة طلب فاتورة بالأقساط',
             nav_products: 'المنتجات والخدمات',
             nav_settings: 'إعدادات المنشأة',
             nav_backup: 'النسخ الاحتياطي',
 
-            title_dashboard: 'لوحة التحكم والإحصائيات',
-            title_invoices: 'سجل وإدارة الفواتير',
-            title_clients: 'دليل العملاء',
-            title_products: 'المنتجات والخدمات',
-            title_settings: 'إعدادات المنشأة والفواتير',
+            title_dashboard: 'لوحة التحكم وأرباح الشركاء (السيد إبراهيم والسيد فواز)',
+            title_invoices: 'سجل الفواتير ومتابعة التحصيل',
+            title_clients: 'دليل العملاء وكشوف الحسابات',
+            title_users: 'إدارة المستخدمين وصلاحيات المدراء',
+            title_client_portal: 'نموذج تعبئة طلب فاتورة وخطة الدفع والأقساط',
+            title_products: 'دليل الخدمات والأسعار',
+            title_settings: 'إعدادات الشركة والفواتير',
             title_backup: 'النسخ الاحتياطي واستعادة البيانات',
 
             btn_new_invoice: 'فاتورة جديدة',
             btn_export_excel: 'تصدير Excel',
             btn_view_all_invoices: 'عرض جميع الفواتير',
             btn_add_client: 'إضافة عميل',
-            btn_add_product: 'إضافة منتج',
+            btn_add_product: 'إضافة خدمة',
             btn_save_invoice: 'حفظ وتأكيد الفاتورة',
             btn_save_client: 'حفظ العميل',
-            btn_save_product: 'حفظ الصنف',
-            btn_save_settings: 'حفظ وتحديث الإعدادات',
+            btn_save_product: 'حفظ الخدمة',
+            btn_save_settings: 'حفظ الإعدادات',
             btn_cancel: 'إلغاء',
             btn_close: 'إغلاق',
-            btn_reset: 'إعادة تعيين',
+            btn_reset: 'إعادة ضبط',
             btn_add_item: 'إضافة بند جديد',
             btn_edit: 'تعديل',
             btn_delete: 'حذف',
-            btn_view: 'عرض',
+            btn_view: 'معاينة',
             btn_print: 'طباعة',
-            btn_print_official: 'طباعة الفاتورة الرسمية',
-            btn_whatsapp: 'إرسال عبر واتساب',
-            btn_download_backup: 'تحميل النسخة الاحتياطية (JSON)',
-            btn_restore_now: 'استرجاع البيانات الآن',
+            btn_print_official: 'طباعة فاتورة ياراماي الرسمية',
+            btn_whatsapp: 'إرسال واتساب',
+            btn_download_backup: 'تحميل نسخة احتياطية (JSON)',
+            btn_restore_now: 'استرجاع النسخة الآن',
+            btn_record_payment: 'تسجيل دفعة',
+            btn_view_dossier: 'ملف العميل',
+            btn_submit_request: 'إرسال طلب الفاتورة',
 
-            kpi_total_sales: 'إجمالي المبيعات النشطة',
-            kpi_total_sub: 'المجموع الكلي للفواتير المعتمدة',
-            kpi_paid_total: 'المبالغ المسددة (مدفوعة)',
-            kpi_paid_sub: 'تم تحصيلها بنجاح',
-            kpi_unpaid_total: 'المبالغ المستحقة (معلقة/غير مدفوعة)',
-            kpi_unpaid_sub: 'بانتظار السداد من العملاء',
-            kpi_invoice_count: 'إجمالي عدد الفواتير',
-            kpi_invoice_sub: 'سجل العمليات الصادرة',
-            recent_invoices_title: 'أحدث الفواتير المسجلة',
+            kpi_total_sales: 'إجمالي المبيعات (السعر)',
+            kpi_total_sub: 'المجموع الكلي للفواتير الصادرة',
+            kpi_paid_total: 'إجمالي المبالغ المسددة',
+            kpi_paid_sub: 'المبالغ المحصلة بنجاح',
+            kpi_unpaid_total: 'الرصيد المتبقي المستحق',
+            kpi_unpaid_sub: 'إجمالي المستحقات المتبقية',
+            kpi_client_count: 'عدد العملاء',
+            kpi_client_sub: 'الشركات والعملاء المسجلين',
+            kpi_invoice_count: 'إجمالي الفواتير',
+            kpi_invoice_sub: 'عدد المعاملات الصادرة',
 
-            search_invoice_placeholder: 'ابحث برقم الفاتورة، اسم العميل أو الهاتف...',
+            partner_split_title: 'توزيع إيرادات الشركاء (السيد إبراهيم والسيد فواز)',
+            partner_split_desc: 'عند اختيار أحدهما فقط فإن كامل الدفعة تذهب لحسابه، وعند اختيار كلاهما تقسم الدفعة مناصفة (50% لكل منهما).',
+            kpi_ibraheem_total: 'حصة السيد إبراهيم الإجمالية',
+            kpi_fawas_total: 'حصة السيد فواز الإجمالية',
+
+            client_info_summary_title: 'بيانات العملاء والأرصدة المستحقة',
+            recent_invoices_title: 'أحدث الفواتير والعمليات',
+            client_portal_headline: 'نموذج العميل لتعبئة وإصدار الفاتورة وخطة الأقساط',
+            client_portal_sub: 'يمكن اختيار الدفع بالكامل أو بالتقسيط على 3 أشهر أو 6 أشهر مع حساب القسط الشهري تلقائياً.',
+
+            search_invoice_placeholder: 'ابحث برقم الفاتورة، اسم العميل، المسؤول، الهاتف...',
+            search_client_placeholder: 'ابحث عن عميل بالاسم، المسؤول، الهاتف، العنوان...',
             status_all: 'جميع الحالات',
-            status_paid: 'مدفوعة',
+            status_paid: 'مدفوعة بالكامل',
+            status_partial: 'دفعة جزئية',
             status_unpaid: 'غير مدفوعة (مستحقة)',
             status_pending: 'قيد الانتظار',
             status_cancelled: 'ملغاة',
             date_to: 'إلى',
 
+            partner_all: 'جميع الشركاء',
+            partner_both: 'كلاهما (السيد إبراهيم والسيد فواز - مناصفة 50/50)',
+            partner_ibraheem: 'السيد إبراهيم',
+            partner_fawas: 'السيد فواز',
+
+            term_full: 'دفع كامل (دفعة واحدة)',
+            term_3_months: 'أقساط على 3 أشهر',
+            term_6_months: 'أقساط على 6 أشهر',
+            term_custom: 'أقساط مخصصة (أشهر)',
+
             th_invoice_num: 'رقم الفاتورة',
-            th_client: 'العميل',
+            th_client: 'العميل / الشركة',
+            th_contact_person: 'الشخص المسؤول',
             th_issue_date: 'تاريخ الإصدار',
             th_due_date: 'تاريخ الاستحقاق',
-            th_total: 'المجموع الإجمالي',
+            th_price: 'السعر / التكلفة',
+            th_paid: 'المبلغ المدفوع',
+            th_balance: 'الرصيد المتبقي',
+            th_plan: 'خطة الدفع / القسط',
+            th_partner: 'الشريك المخصص',
             th_status: 'الحالة',
             th_actions: 'العمليات',
-            th_phone: 'رقم الجوال',
+            th_phone: 'الهاتف / الجوال',
             th_email: 'البريد الإلكتروني',
+            th_address: 'العنوان',
             th_tax_num: 'الرقم الضريبي',
             th_invoices_count: 'عدد الفواتير',
-            th_item_name: 'اسم الصنف / الخدمة',
+            th_item_name: 'اسم البند / الخدمة',
             th_description: 'الوصف',
             th_unit_price: 'سعر الوحدة',
-            th_tax_rate: 'نسبة الضريبة',
+            th_tax_rate: 'الضريبة %',
             th_quantity: 'الكمية',
             th_discount: 'الخصم',
 
             lbl_invoice_num: 'رقم الفاتورة *',
-            lbl_client: 'العميل *',
+            lbl_client: 'اختيار العميل *',
+            lbl_or_new_client: 'أو إضافة عميل جديد',
+            lbl_new_client_name: 'اسم الشركة / المنشأة',
+            lbl_new_contact_person: 'اسم المسؤول (مثال: Mr. Allan Rom)',
+            lbl_new_client_phone: 'رقم الهاتف / الجوال',
+            lbl_new_client_address: 'العنوان / المدينة',
             lbl_issue_date: 'تاريخ الإصدار *',
             lbl_due_date: 'تاريخ الاستحقاق',
             lbl_status: 'حالة الفاتورة *',
             lbl_payment_method: 'طريقة الدفع *',
+            lbl_payment_term: 'خطة الدفع والأقساط *',
+            lbl_partner_assigned: 'تخصيص الدفعة للشريك *',
             lbl_invoice_items: 'بنود الفاتورة والخدمات',
-            lbl_notes_terms: 'شروط الدفع وملاحظات',
+            lbl_price_note: 'ملاحظة السعر / معادلة القسط',
+            lbl_amount_due_note: 'ملاحظة المبلغ المستحق',
+            lbl_paid_amount: 'المبلغ المدفوع (PHP)',
+            lbl_remaining_balance: 'الرصيد المتبقي (PHP)',
+            lbl_notes_terms: 'شروط التحويل والملاحظات',
             calc_subtotal: 'المجموع الفرعي:',
             calc_discount: 'إجمالي الخصم:',
-            calc_tax: 'ضريبة القيمة المضافة:',
-            calc_grand_total: 'المجموع الكلي:',
+            calc_tax: 'الضريبة:',
+            calc_grand_total: 'التكلفة الإجمالية / السعر:',
+            calc_monthly: 'القسط الشهري:',
 
-            method_cash: 'نقداً (كاش)',
-            method_bank: 'تحويل بنكي',
-            method_card: 'بطاقة مدى / ائتمان',
-            method_cheque: 'شيك مصرفي',
+            method_gcash: 'GCash (Ferdenand Sabado - 09617190588)',
+            method_cash: 'دفع نقدي (كاش)',
 
             client_modal_title_new: 'إضافة عميل جديد',
             client_modal_title_edit: 'تعديل بيانات العميل',
-            lbl_client_name: 'اسم العميل / المؤسسة *',
-            lbl_client_phone: 'رقم الجوال / الهاتف',
+            lbl_client_name: 'اسم الشركة / العميل *',
+            lbl_contact_person: 'الشخص المسؤول (مثال: Mr. Allan Rom) *',
+            lbl_client_phone: 'رقم الهاتف / الجوال',
             lbl_client_email: 'البريد الإلكتروني',
-            lbl_client_tax: 'الرقم الضريبي للعميل (إن وجد)',
-            lbl_client_address: 'العنوان',
+            lbl_client_tax: 'الرقم الضريبي للعميل',
+            lbl_client_address: 'العنوان بالتفصيل',
 
-            product_modal_title_new: 'إضافة منتج أو خدمة جديدة',
-            product_modal_title_edit: 'تعديل المنتج / الخدمة',
-            lbl_product_name: 'اسم المنتج أو الخدمة *',
-            lbl_product_price: 'سعر الوحدة الافتراضي *',
+            product_modal_title_new: 'إضافة خدمة أو باقة جديدة',
+            product_modal_title_edit: 'تعديل الخدمة',
+            lbl_product_name: 'اسم الخدمة أو الباقة *',
+            lbl_product_price: 'السعر الافتراضي (PHP) *',
             lbl_product_tax: 'نسبة الضريبة (%)',
-            lbl_product_desc: 'وصف الصنف',
+            lbl_product_desc: 'تفاصيل ومكونات الباقة',
 
-            settings_title: 'بيانات المنشأة وإعدادات الفوترة الإلكترونية',
+            settings_title: 'بيانات المنشأة وإعدادات الفواتير',
             lbl_company_name: 'اسم المنشأة / الشركة *',
-            lbl_company_cr: 'رقم السجل التجاري (CR)',
-            lbl_company_vat: 'الرقم الضريبي (15 رقماً) *',
-            lbl_company_phone: 'رقم الجوال / الهاتف',
-            lbl_company_email: 'البريد الإلكتروني للفوترة',
+            lbl_company_cr: 'رقم الوحدة / التسجيل',
+            lbl_company_vat: 'الرقم الضريبي',
+            lbl_company_phone: 'أرقام التواصل (SMS/اتصال)',
+            lbl_company_email: 'البريد الإلكتروني',
+            lbl_company_manager: 'اسم المدير العام *',
+            lbl_company_title: 'المسمى الوظيفي',
+            lbl_company_cert: 'الشهادات والمؤهلات',
+            lbl_company_website: 'الموقع الإلكتروني',
+            lbl_company_gcash: 'رقم GCash *',
+            lbl_gcash_account: 'اسم صاحب حساب GCash *',
             lbl_currency: 'رمز العملة',
             lbl_default_tax: 'نسبة الضريبة الافتراضية (%)',
             lbl_invoice_prefix: 'بادئة رقم الفاتورة',
-            lbl_company_address: 'عنوان المنشأة بالتفصيل',
-            lbl_invoice_footer: 'ملاحظة وتذييل الفاتورة الافتراضي',
+            lbl_company_address: 'عنوان الشركة بالتفصيل',
+            lbl_invoice_footer: 'ملاحظة الفاتورة وتفاصيل التحويل الافتراضية',
 
             backup_export_title: 'تصدير نسخة احتياطية كاملة',
-            backup_export_desc: 'قم بتحميل ملف JSON يحتوي على كامل الفواتير، بيانات العملاء، الخدمات، والإعدادات لحفظها في مكان آمن.',
+            backup_export_desc: 'قم بتحميل ملف JSON يحتوي على كافة الفواتير والعملاء والخدمات والإعدادات.',
             backup_import_title: 'استعادة نسخة احتياطية',
-            backup_import_desc: 'حدد ملف النسخة الاحتياطية (JSON) لاسترجاع كافة البيانات السابقة.',
-            confirm_restore: 'تنبيه: ستؤدي الاستعادة إلى استبدال البيانات الحالية بمحتويات الملف. هل تريد المتابعة؟',
+            backup_import_desc: 'حدد ملف النسخة الاحتياطية (JSON) لاسترجاع البيانات.',
+            confirm_restore: 'تنبيه: ستؤدي الاستعادة إلى استبدال البيانات الحالية. هل تريد المتابعة؟',
 
             toast_invoice_saved: 'تم حفظ الفاتورة بنجاح',
             toast_invoice_deleted: 'تم حذف الفاتورة بنجاح',
-            toast_status_updated: 'تم تحديث حالة الفاتورة',
+            toast_status_updated: 'تم تحديث حالة الفاتورة بنجاح',
+            toast_payment_recorded: 'تم تسجيل الدفعة وتوزيع حصص الشركاء وتحديث الرصيد المتبقي بنجاح',
             toast_client_saved: 'تم حفظ بيانات العميل بنجاح',
             toast_client_deleted: 'تم حذف العميل بنجاح',
-            toast_product_saved: 'تم حفظ الصنف بنجاح',
-            toast_product_deleted: 'تم حذف الصنف بنجاح',
+            toast_product_saved: 'تم حفظ الخدمة بنجاح',
+            toast_product_deleted: 'تم حذف الخدمة بنجاح',
             toast_settings_saved: 'تم حفظ الإعدادات بنجاح',
             toast_item_required: 'يجب أن تحتوي الفاتورة على بند واحد على الأقل',
-            confirm_delete_invoice: 'هل أنت متأكد من حذف هذه الفاتورة نهائياً؟',
-            confirm_delete_client: 'هل أنت متأكد من حذف هذا العميل؟ لن يتم حذف فواتيره السابقة.',
-            confirm_delete_product: 'هل أنت متأكد من حذف هذا الصنف من الدليل؟',
+            confirm_delete_invoice: 'هل أنت متأكد من حذف هذه الفاتورة؟',
+            confirm_delete_client: 'هل أنت متأكد من حذف هذا العميل؟',
+            confirm_delete_product: 'هل أنت متأكد من حذف هذه الخدمة؟',
             cash_client: 'عميل نقدي',
             invoice_word: 'فاتورة',
             no_records: 'لا توجد نتائج مطابقة',
             no_clients: 'لا يوجد عملاء مسجلين',
-            no_products: 'لا توجد أصناف مسجلة'
-        },
-        en: {
-            brand_title: 'Invoice System',
-            brand_subtitle: 'Al-Waha Business Solutions',
-            version_text: 'v2.5 Green Edition',
-            page_subtitle: 'Complete E-Invoicing System for Mobile & Desktop',
-
-            nav_dashboard: 'Dashboard',
-            nav_invoices: 'Invoices Record',
-            nav_clients: 'Clients Directory',
-            nav_products: 'Products & Services',
-            nav_settings: 'Company Settings',
-            nav_backup: 'Backup & Restore',
-
-            title_dashboard: 'Dashboard & Statistics',
-            title_invoices: 'Invoices Management',
-            title_clients: 'Clients Directory',
-            title_products: 'Products & Services',
-            title_settings: 'Company & Tax Settings',
-            title_backup: 'Backup & Data Recovery',
-
-            btn_new_invoice: 'New Invoice',
-            btn_export_excel: 'Export Excel',
-            btn_view_all_invoices: 'View All Invoices',
-            btn_add_client: 'Add Client',
-            btn_add_product: 'Add Product',
-            btn_save_invoice: 'Save & Confirm Invoice',
-            btn_save_client: 'Save Client',
-            btn_save_product: 'Save Item',
-            btn_save_settings: 'Save Settings',
-            btn_cancel: 'Cancel',
-            btn_close: 'Close',
-            btn_reset: 'Reset',
-            btn_add_item: 'Add New Item',
-            btn_edit: 'Edit',
-            btn_delete: 'Delete',
-            btn_view: 'View',
-            btn_print: 'Print',
-            btn_print_official: 'Print Official Invoice',
-            btn_whatsapp: 'Send via WhatsApp',
-            btn_download_backup: 'Download Backup (JSON)',
-            btn_restore_now: 'Restore Data Now',
-
-            kpi_total_sales: 'Total Active Sales',
-            kpi_total_sub: 'Grand total of valid invoices',
-            kpi_paid_total: 'Paid Amount',
-            kpi_paid_sub: 'Successfully collected',
-            kpi_unpaid_total: 'Due Amount (Pending/Unpaid)',
-            kpi_unpaid_sub: 'Awaiting client settlement',
-            kpi_invoice_count: 'Total Invoices Count',
-            kpi_invoice_sub: 'Issued transaction record',
-            recent_invoices_title: 'Recent Invoices',
-
-            search_invoice_placeholder: 'Search by invoice #, client name or phone...',
-            status_all: 'All Statuses',
-            status_paid: 'Paid',
-            status_unpaid: 'Unpaid (Due)',
-            status_pending: 'Pending',
-            status_cancelled: 'Cancelled',
-            date_to: 'To',
-
-            th_invoice_num: 'Invoice #',
-            th_client: 'Client',
-            th_issue_date: 'Issue Date',
-            th_due_date: 'Due Date',
-            th_total: 'Total Amount',
-            th_status: 'Status',
-            th_actions: 'Actions',
-            th_phone: 'Phone',
-            th_email: 'Email',
-            th_tax_num: 'Tax / VAT Number',
-            th_invoices_count: 'Invoices Count',
-            th_item_name: 'Item / Service Name',
-            th_description: 'Description',
-            th_unit_price: 'Unit Price',
-            th_tax_rate: 'Tax Rate',
-            th_quantity: 'Qty',
-            th_discount: 'Discount',
-
-            lbl_invoice_num: 'Invoice Number *',
-            lbl_client: 'Client *',
-            lbl_issue_date: 'Issue Date *',
-            lbl_due_date: 'Due Date',
-            lbl_status: 'Invoice Status *',
-            lbl_payment_method: 'Payment Method *',
-            lbl_invoice_items: 'Invoice Items & Services',
-            lbl_notes_terms: 'Payment Terms & Notes',
-            calc_subtotal: 'Subtotal:',
-            calc_discount: 'Total Discount:',
-            calc_tax: 'VAT (Tax):',
-            calc_grand_total: 'Grand Total:',
-
-            method_cash: 'Cash',
-            method_bank: 'Bank Transfer',
-            method_card: 'Debit / Credit Card (Mada)',
-            method_cheque: 'Bank Cheque',
-
-            client_modal_title_new: 'Add New Client',
-            client_modal_title_edit: 'Edit Client Details',
-            lbl_client_name: 'Client / Business Name *',
-            lbl_client_phone: 'Mobile / Phone Number',
-            lbl_client_email: 'Email Address',
-            lbl_client_tax: 'Client Tax Number (If available)',
-            lbl_client_address: 'Address',
-
-            product_modal_title_new: 'Add Product / Service',
-            product_modal_title_edit: 'Edit Product / Service',
-            lbl_product_name: 'Product or Service Name *',
-            lbl_product_price: 'Default Unit Price *',
-            lbl_product_tax: 'Tax Rate (%)',
-            lbl_product_desc: 'Item Description',
-
-            settings_title: 'Company Information & E-Invoicing Settings',
-            lbl_company_name: 'Company / Business Name *',
-            lbl_company_cr: 'Commercial Register (CR)',
-            lbl_company_vat: 'Tax / VAT Number (15 digits) *',
-            lbl_company_phone: 'Phone Number',
-            lbl_company_email: 'Billing Email',
-            lbl_currency: 'Currency Symbol',
-            lbl_default_tax: 'Default Tax Rate (%)',
-            lbl_invoice_prefix: 'Invoice Prefix',
-            lbl_company_address: 'Detailed Business Address',
-            lbl_invoice_footer: 'Default Invoice Note & Footer',
-
-            backup_export_title: 'Export Full Backup',
-            backup_export_desc: 'Download a complete JSON file containing all invoices, clients, products, and settings for safe storage.',
-            backup_import_title: 'Restore Backup',
-            backup_import_desc: 'Select your backup JSON file to recover all previous records.',
-            confirm_restore: 'Warning: Restoring will overwrite existing data with the backup file. Proceed?',
-
-            toast_invoice_saved: 'Invoice saved successfully',
-            toast_invoice_deleted: 'Invoice deleted successfully',
-            toast_status_updated: 'Invoice status updated',
-            toast_client_saved: 'Client saved successfully',
-            toast_client_deleted: 'Client deleted successfully',
-            toast_product_saved: 'Product saved successfully',
-            toast_product_deleted: 'Product deleted successfully',
-            toast_settings_saved: 'Settings saved successfully',
-            toast_item_required: 'Invoice must contain at least one item',
-            confirm_delete_invoice: 'Are you sure you want to permanently delete this invoice?',
-            confirm_delete_client: 'Are you sure you want to delete this client? Invoices will not be removed.',
-            confirm_delete_product: 'Are you sure you want to delete this product from the catalog?',
-            cash_client: 'Cash Customer',
-            invoice_word: 'Invoice',
-            no_records: 'No matching records found',
-            no_clients: 'No registered clients found',
-            no_products: 'No products or services found'
+            no_products: 'لا توجد خدمات مسجلة'
         }
     },
 
-    // Translation lookup helper
+    // Translation helper
     t(key) {
         return (this.i18n[this.lang] && this.i18n[this.lang][key]) 
-            || (this.i18n['ar'] && this.i18n['ar'][key]) 
+            || (this.i18n['en'] && this.i18n['en'][key]) 
             || key;
     },
 
-    // Toggle Language between 'ar' and 'en'
     toggleLanguage() {
-        const newLang = this.lang === 'ar' ? 'en' : 'ar';
+        const newLang = this.lang === 'en' ? 'ar' : 'en';
         this.setLanguage(newLang);
     },
 
@@ -335,13 +449,11 @@ const App = {
         html.lang = lang;
         html.dir = (lang === 'ar' ? 'rtl' : 'ltr');
 
-        // Update Language Switcher Button Text
         const langBtnText = document.getElementById('langToggleText');
         if (langBtnText) {
-            langBtnText.innerText = (lang === 'ar' ? 'English' : 'العربية');
+            langBtnText.innerText = (lang === 'en' ? 'العربية' : 'English');
         }
 
-        // Apply translations to all data-i18n elements
         document.querySelectorAll('[data-i18n]').forEach(el => {
             const key = el.getAttribute('data-i18n');
             const translation = this.t(key);
@@ -350,7 +462,6 @@ const App = {
             }
         });
 
-        // Apply translations to placeholder elements
         document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
             const key = el.getAttribute('data-i18n-placeholder');
             const translation = this.t(key);
@@ -359,11 +470,10 @@ const App = {
             }
         });
 
-        // Re-render active view
         this.switchView(this.currentView);
     },
 
-    // Init
+    // App Initialization
     init() {
         this.bindEvents();
         this.setLanguage(this.lang);
@@ -374,7 +484,6 @@ const App = {
         this.loadInvoices();
     },
 
-    // Bind UI Events
     bindEvents() {
         // Navigation links
         document.querySelectorAll('[data-view]').forEach(el => {
@@ -398,11 +507,9 @@ const App = {
                 backdrop.classList.add('active');
             });
         }
-
         if (closeSidebarBtn) {
             closeSidebarBtn.addEventListener('click', () => this.closeSidebar());
         }
-
         if (backdrop) {
             backdrop.addEventListener('click', () => this.closeSidebar());
         }
@@ -417,6 +524,7 @@ const App = {
         // Search & Filters for Invoices
         const invoiceSearch = document.getElementById('invoiceSearchInput');
         const statusFilter = document.getElementById('statusFilterSelect');
+        const partnerFilter = document.getElementById('partnerFilterSelect');
         const dateFromFilter = document.getElementById('dateFromFilter');
         const dateToFilter = document.getElementById('dateToFilter');
 
@@ -427,17 +535,19 @@ const App = {
                 timeout = setTimeout(() => this.loadInvoices(), 300);
             });
         }
+        if (statusFilter) statusFilter.addEventListener('change', () => this.loadInvoices());
+        if (partnerFilter) partnerFilter.addEventListener('change', () => this.loadInvoices());
+        if (dateFromFilter) dateFromFilter.addEventListener('change', () => this.loadInvoices());
+        if (dateToFilter) dateToFilter.addEventListener('change', () => this.loadInvoices());
 
-        if (statusFilter) {
-            statusFilter.addEventListener('change', () => this.loadInvoices());
-        }
-
-        if (dateFromFilter) {
-            dateFromFilter.addEventListener('change', () => this.loadInvoices());
-        }
-
-        if (dateToFilter) {
-            dateToFilter.addEventListener('change', () => this.loadInvoices());
+        // Client search in Directory
+        const clientSearch = document.getElementById('clientSearchInput');
+        if (clientSearch) {
+            let cTimeout = null;
+            clientSearch.addEventListener('input', () => {
+                clearTimeout(cTimeout);
+                cTimeout = setTimeout(() => this.loadClients(clientSearch.value), 300);
+            });
         }
 
         // Settings Form Submit
@@ -476,6 +586,24 @@ const App = {
             });
         }
 
+        // Client Portal Self Fill-Up Form Submit
+        const clientPortalForm = document.getElementById('clientPortalForm');
+        if (clientPortalForm) {
+            clientPortalForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.submitClientInvoice();
+            });
+        }
+
+        // Quick Payment Form Submit
+        const quickPaymentForm = document.getElementById('quickPaymentForm');
+        if (quickPaymentForm) {
+            quickPaymentForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.submitQuickPayment();
+            });
+        }
+
         // Add Line Item Button
         const addItemBtn = document.getElementById('addItemBtn');
         if (addItemBtn) {
@@ -483,6 +611,53 @@ const App = {
                 this.addInvoiceItemRow();
             });
         }
+
+        // Quick Client Toggle in Invoice Modal
+        const toggleNewClientCheck = document.getElementById('toggleNewClientCheck');
+        if (toggleNewClientCheck) {
+            toggleNewClientCheck.addEventListener('change', (e) => {
+                const box = document.getElementById('quickNewClientBox');
+                const selectGroup = document.getElementById('existingClientGroup');
+                if (e.target.checked) {
+                    box.style.display = 'block';
+                    selectGroup.style.display = 'none';
+                    document.getElementById('invoiceClientSelect').value = '';
+                } else {
+                    box.style.display = 'none';
+                    selectGroup.style.display = 'block';
+                }
+            });
+        }
+
+        // Paid Amount Auto Calculation
+        const paidInput = document.getElementById('invoicePaidAmountInput');
+        if (paidInput) {
+            paidInput.addEventListener('input', () => {
+                this.recalculateTotals();
+            });
+        }
+
+        // Invoice Modal Installment Term Change
+        const invoiceTermSelect = document.getElementById('invoicePaymentTerm');
+        if (invoiceTermSelect) {
+            invoiceTermSelect.addEventListener('change', () => {
+                this.onInvoiceTermChange();
+            });
+        }
+
+        // Portal Form Price input & Term Radio change
+        const portalPriceInput = document.getElementById('portalPrice');
+        if (portalPriceInput) {
+            portalPriceInput.addEventListener('input', () => {
+                this.updatePortalFormula();
+            });
+        }
+
+        document.querySelectorAll('input[name="payment_term"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                this.updatePortalFormula();
+            });
+        });
     },
 
     closeSidebar() {
@@ -492,11 +667,9 @@ const App = {
         if (backdrop) backdrop.classList.remove('active');
     },
 
-    // View Navigation
     switchView(viewName) {
         this.currentView = viewName;
 
-        // Update Nav Links
         document.querySelectorAll('.nav-link').forEach(link => {
             if (link.getAttribute('data-view') === viewName) {
                 link.classList.add('active');
@@ -505,31 +678,28 @@ const App = {
             }
         });
 
-        // Hide all views
         document.querySelectorAll('.view-section').forEach(sec => {
             sec.classList.remove('active-view');
         });
 
-        // Show target view
         const targetView = document.getElementById(`view-${viewName}`);
         if (targetView) {
             targetView.classList.add('active-view');
         }
 
-        // Update Title
         const titleEl = document.getElementById('pageTitle');
         if (titleEl) {
             titleEl.innerText = this.t(`title_${viewName}`);
         }
 
-        // Refresh Data on Tab Open
         if (viewName === 'dashboard') this.loadDashboard();
         if (viewName === 'invoices') this.loadInvoices();
         if (viewName === 'clients') this.loadClients();
         if (viewName === 'products') this.loadProducts();
+        if (viewName === 'users') this.loadUsers();
+        if (viewName === 'client_portal') this.updatePortalFormula();
     },
 
-    // Toast Notification
     showToast(message, type = 'success') {
         const container = document.getElementById('toastContainer');
         if (!container) return;
@@ -554,7 +724,6 @@ const App = {
         }, 3500);
     },
 
-    // Modal helpers
     openModal(modalId) {
         const modal = document.getElementById(modalId);
         if (modal) modal.classList.add('active');
@@ -570,7 +739,7 @@ const App = {
     },
 
     // ==========================================
-    // API & Data Loaders
+    // 1. Settings & Branding
     // ==========================================
     async loadSettings() {
         try {
@@ -578,16 +747,14 @@ const App = {
             const result = await res.json();
             if (result.success) {
                 this.settings = result.data;
-                this.currency = this.settings.currency || (this.lang === 'ar' ? 'ر.س' : 'SAR');
-                this.taxRate = parseFloat(this.settings.default_tax_rate) || 15;
+                this.currency = this.settings.currency || 'PHP';
+                this.taxRate = parseFloat(this.settings.default_tax_rate) || 0;
 
-                // Populate Settings Form Fields
                 for (const [key, val] of Object.entries(this.settings)) {
                     const input = document.getElementById(`setting_${key}`);
                     if (input) input.value = val;
                 }
 
-                // Update branding elements
                 const brandNameEl = document.getElementById('sidebarBrandName');
                 if (brandNameEl && this.settings.company_name) {
                     brandNameEl.innerText = this.settings.company_name;
@@ -620,32 +787,97 @@ const App = {
         }
     },
 
+    // ==========================================
+    // 2. Admin Dashboard & Partner Revenue Division
+    // ==========================================
     async loadDashboard() {
         try {
             const res = await fetch('api.php?action=get_dashboard_stats');
             const result = await res.json();
             if (result.success) {
                 const d = result.data;
+                
+                // KPIs
                 document.getElementById('kpiTotalSales').innerText = `${this.formatMoney(d.total_sales)} ${this.currency}`;
                 document.getElementById('kpiPaidTotal').innerText = `${this.formatMoney(d.paid_total)} ${this.currency}`;
-                document.getElementById('kpiUnpaidTotal').innerText = `${this.formatMoney(d.unpaid_total)} ${this.currency}`;
+                document.getElementById('kpiUnpaidTotal').innerText = `${this.formatMoney(d.remaining_balance_total)} ${this.currency}`;
+                document.getElementById('kpiClientCount').innerText = `${d.client_count}`;
                 document.getElementById('kpiInvoiceCount').innerText = `${d.invoice_count} ${this.t('invoice_word')}`;
 
-                // Render Recent Invoices Table
+                // Partner Earnings
+                const ibraheemEl = document.getElementById('kpiIbraheemTotal');
+                if (ibraheemEl) ibraheemEl.innerText = `${this.formatMoney(d.ibraheem_total)} ${this.currency}`;
+
+                const fawasEl = document.getElementById('kpiFawasTotal');
+                if (fawasEl) fawasEl.innerText = `${this.formatMoney(d.fawas_total)} ${this.currency}`;
+
+                // Render Client Information Overview Table on Admin Dashboard
+                const clientSummaryTbody = document.getElementById('adminClientsSummaryTableBody');
+                if (clientSummaryTbody) {
+                    if (!d.clients_summary || d.clients_summary.length === 0) {
+                        clientSummaryTbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px; color:#94a3b8;">${this.t('no_clients')}</td></tr>`;
+                    } else {
+                        clientSummaryTbody.innerHTML = d.clients_summary.map(c => `
+                            <tr>
+                                <td>
+                                    <strong style="color:var(--text-heading); font-size:14px;">${this.escapeHtml(c.name)}</strong>
+                                    ${c.address ? `<div style="font-size:11.5px; color:var(--text-muted);">${this.escapeHtml(c.address)}</div>` : ''}
+                                </td>
+                                <td>
+                                    <div style="font-weight:600; color:#334155;">${this.escapeHtml(c.contact_person || '-')}</div>
+                                    <div style="font-size:11px; color:#64748b;">${this.escapeHtml(c.phone || '')}</div>
+                                </td>
+                                <td><span class="badge badge-paid">${c.invoice_count}</span></td>
+                                <td><strong>${this.formatMoney(c.total_price)} ${this.currency}</strong></td>
+                                <td style="color:#15803d; font-weight:600;">${this.formatMoney(c.total_paid)} ${this.currency}</td>
+                                <td>${this.renderBalanceBadge(c.remaining_balance)}</td>
+                                <td>
+                                    <div class="actions-cell">
+                                        <button class="btn btn-sm btn-primary" onclick="App.viewClientDossier(${c.id})">
+                                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                            <span>${this.t('btn_view')}</span>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline" onclick="App.openNewInvoiceForClient(${c.id})">
+                                            <span>+ ${this.t('btn_new_invoice')}</span>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `).join('');
+                    }
+                }
+
+                // Render Recent Invoices Table on Dashboard
                 const tbody = document.getElementById('recentInvoicesTableBody');
                 if (tbody) {
                     if (!d.recent_invoices || d.recent_invoices.length === 0) {
-                        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:#94a3b8;">${this.t('no_records')}</td></tr>`;
+                        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:20px; color:#94a3b8;">${this.t('no_records')}</td></tr>`;
                     } else {
                         tbody.innerHTML = d.recent_invoices.map(inv => `
                             <tr>
-                                <td><strong style="color:var(--primary); font-family:monospace;">${this.escapeHtml(inv.invoice_number)}</strong></td>
-                                <td>${this.escapeHtml(inv.client_name || this.t('cash_client'))}</td>
-                                <td>${inv.issue_date}</td>
-                                <td><strong>${this.formatMoney(inv.grand_total)} ${this.currency}</strong></td>
+                                <td><strong style="color:var(--primary); font-family:monospace; font-size:13.5px;">${this.escapeHtml(inv.invoice_number)}</strong></td>
+                                <td>
+                                    <div style="font-weight:700;">${this.escapeHtml(inv.client_name || this.t('cash_client'))}</div>
+                                    ${inv.contact_person ? `<div style="font-size:11.5px; color:#64748b;">👤 ${this.escapeHtml(inv.contact_person)}</div>` : ''}
+                                </td>
+                                <td>
+                                    <div><strong>${this.formatMoney(inv.grand_total)} ${this.currency}</strong></div>
+                                    ${this.renderInstallmentPill(inv)}
+                                </td>
+                                <td style="color:#15803d; font-weight:600;">${this.formatMoney(inv.paid_amount)}</td>
+                                <td>${this.renderBalanceBadge(inv.remaining_balance)}</td>
+                                <td>${this.renderPartnerBadge(inv.partner_assigned, inv.ibraheem_share, inv.fawas_share)}</td>
                                 <td>${this.renderStatusBadge(inv.status)}</td>
                                 <td>
-                                    <button class="btn btn-sm btn-light" onclick="App.viewInvoice(${inv.id})">${this.t('btn_view')}</button>
+                                    <div class="actions-cell">
+                                        <a href="print.php?id=${inv.id}&lang=${this.lang}" target="_blank" class="btn btn-sm btn-outline" title="${this.t('btn_print_official')}">
+                                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                                        </a>
+                                        <button class="btn btn-sm btn-light" onclick="App.openQuickPaymentModal(${inv.id})" title="${this.t('btn_record_payment')}">
+                                            💳
+                                        </button>
+                                        <button class="btn btn-sm btn-light" onclick="App.viewInvoice(${inv.id})">${this.t('btn_view')}</button>
+                                    </div>
                                 </td>
                             </tr>
                         `).join('');
@@ -657,9 +889,13 @@ const App = {
         }
     },
 
+    // ==========================================
+    // 3. Invoices Management
+    // ==========================================
     async loadInvoices() {
         const search = document.getElementById('invoiceSearchInput')?.value || '';
         const status = document.getElementById('statusFilterSelect')?.value || '';
+        const partner = document.getElementById('partnerFilterSelect')?.value || '';
         const fromDate = document.getElementById('dateFromFilter')?.value || '';
         const toDate = document.getElementById('dateToFilter')?.value || '';
 
@@ -667,6 +903,7 @@ const App = {
             action: 'get_invoices',
             search: search,
             status: status,
+            partner: partner,
             from_date: fromDate,
             to_date: toDate
         });
@@ -688,7 +925,7 @@ const App = {
         if (!tbody) return;
 
         if (this.invoices.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:30px; color:#94a3b8;">${this.t('no_records')}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:30px; color:#94a3b8;">${this.t('no_records')}</td></tr>`;
             return;
         }
 
@@ -696,26 +933,33 @@ const App = {
             <tr>
                 <td><strong style="color:var(--primary); font-family:monospace; font-size:14px;">${this.escapeHtml(inv.invoice_number)}</strong></td>
                 <td>
-                    <div style="font-weight:700;">${this.escapeHtml(inv.client_name || this.t('cash_client'))}</div>
-                    ${inv.client_phone ? `<div style="font-size:12px; color:var(--text-muted);">${this.escapeHtml(inv.client_phone)}</div>` : ''}
+                    <div style="font-weight:700; color:var(--text-heading);">${this.escapeHtml(inv.client_name || this.t('cash_client'))}</div>
+                    ${inv.contact_person ? `<div style="font-size:12px; color:#475569;">👤 ${this.escapeHtml(inv.contact_person)}</div>` : ''}
+                    ${inv.client_address ? `<div style="font-size:11px; color:#94a3b8;">📍 ${this.escapeHtml(inv.client_address)}</div>` : ''}
                 </td>
-                <td>${inv.issue_date}</td>
-                <td>${inv.due_date || '-'}</td>
-                <td><strong style="color:var(--primary-dark);">${this.formatMoney(inv.grand_total)} ${this.currency}</strong></td>
                 <td>
-                    <div style="display:inline-block;" onclick="App.showQuickStatusMenu(event, ${inv.id}, '${inv.status}')">
-                        ${this.renderStatusBadge(inv.status)}
-                    </div>
+                    <div><strong>${this.formatMoney(inv.grand_total)} ${this.currency}</strong></div>
+                    ${this.renderInstallmentPill(inv)}
                 </td>
+                <td style="color:#15803d; font-weight:600;">
+                    <div>${this.formatMoney(inv.paid_amount)} ${this.currency}</div>
+                    <div style="font-size:11px; color:#64748b;">via ${inv.payment_method ? inv.payment_method.toUpperCase() : 'GCASH'}</div>
+                </td>
+                <td>${this.renderBalanceBadge(inv.remaining_balance)}</td>
+                <td>${this.renderPartnerBadge(inv.partner_assigned, inv.ibraheem_share, inv.fawas_share)}</td>
+                <td>${this.renderStatusBadge(inv.status)}</td>
                 <td>
                     <div class="actions-cell">
+                        <a href="print.php?id=${inv.id}&lang=${this.lang}" target="_blank" class="btn btn-sm btn-primary" title="${this.t('btn_print_official')}">
+                            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                            <span>${this.t('btn_print')}</span>
+                        </a>
+                        <button class="btn btn-sm btn-outline" title="${this.t('btn_record_payment')}" onclick="App.openQuickPaymentModal(${inv.id})">
+                            <span>💳 ${this.t('btn_record_payment')}</span>
+                        </button>
                         <button class="btn btn-sm btn-light" title="${this.t('btn_view')}" onclick="App.viewInvoice(${inv.id})">
                             <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                            <span>${this.t('btn_view')}</span>
                         </button>
-                        <a href="print.php?id=${inv.id}&lang=${this.lang}" target="_blank" class="btn btn-sm btn-outline" title="${this.t('btn_print')}">
-                            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
-                        </a>
                         <button class="btn btn-sm btn-outline" title="${this.t('btn_edit')}" onclick="App.editInvoice(${inv.id})">
                             <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                         </button>
@@ -729,11 +973,12 @@ const App = {
     },
 
     // ==========================================
-    // Clients Directory
+    // 4. Clients Directory & Dossier
     // ==========================================
-    async loadClients() {
+    async loadClients(search = '') {
         try {
-            const res = await fetch('api.php?action=get_clients');
+            const url = search ? `api.php?action=get_clients&search=${encodeURIComponent(search)}` : 'api.php?action=get_clients';
+            const res = await fetch(url);
             const result = await res.json();
             if (result.success) {
                 this.clients = result.data;
@@ -750,19 +995,33 @@ const App = {
         if (!tbody) return;
 
         if (this.clients.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:#94a3b8;">${this.t('no_clients')}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px; color:#94a3b8;">${this.t('no_clients')}</td></tr>`;
             return;
         }
 
         tbody.innerHTML = this.clients.map(c => `
             <tr>
-                <td><strong>${this.escapeHtml(c.name)}</strong></td>
-                <td>${this.escapeHtml(c.phone || '-')}</td>
-                <td>${this.escapeHtml(c.email || '-')}</td>
-                <td>${this.escapeHtml(c.tax_number || '-')}</td>
+                <td>
+                    <strong style="color:var(--text-heading); font-size:14px;">${this.escapeHtml(c.name)}</strong>
+                    ${c.address ? `<div style="font-size:12px; color:var(--text-muted);">${this.escapeHtml(c.address)}</div>` : ''}
+                </td>
+                <td>
+                    <div style="font-weight:600; color:#334155;">${this.escapeHtml(c.contact_person || '-')}</div>
+                    <div style="font-size:11px; color:#64748b;">${this.escapeHtml(c.phone || '')}</div>
+                </td>
                 <td><span class="badge badge-paid">${c.invoice_count} ${this.t('invoice_word')}</span></td>
+                <td><strong>${this.formatMoney(c.total_purchases)} ${this.currency}</strong></td>
+                <td style="color:#15803d; font-weight:600;">${this.formatMoney(c.total_paid)} ${this.currency}</td>
+                <td>${this.renderBalanceBadge(c.total_balance)}</td>
                 <td>
                     <div class="actions-cell">
+                        <button class="btn btn-sm btn-primary" onclick="App.viewClientDossier(${c.id})">
+                            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                            <span>${this.t('btn_view_dossier')}</span>
+                        </button>
+                        <button class="btn btn-sm btn-outline" onclick="App.openNewInvoiceForClient(${c.id})">
+                            <span>+ ${this.t('btn_new_invoice')}</span>
+                        </button>
                         <button class="btn btn-sm btn-outline" onclick="App.editClient(${c.id})">${this.t('btn_edit')}</button>
                         <button class="btn btn-sm btn-outline" style="color:#ef4444;" onclick="App.deleteClient(${c.id})">${this.t('btn_delete')}</button>
                     </div>
@@ -777,13 +1036,14 @@ const App = {
         const currentVal = select.value;
         const promptText = (this.lang === 'ar' ? '-- اختر عميلاً مسجلاً --' : '-- Select Registered Client --');
         select.innerHTML = `<option value="">${promptText}</option>` + 
-            this.clients.map(c => `<option value="${c.id}">${this.escapeHtml(c.name)} (${c.phone || '-'})</option>`).join('');
+            this.clients.map(c => `<option value="${c.id}">${this.escapeHtml(c.name)} - ${this.escapeHtml(c.contact_person || c.phone || '')}</option>`).join('');
         if (currentVal) select.value = currentVal;
     },
 
     openNewClientModal() {
         document.getElementById('clientIdInput').value = '';
         document.getElementById('clientNameInput').value = '';
+        document.getElementById('clientContactPersonInput').value = '';
         document.getElementById('clientPhoneInput').value = '';
         document.getElementById('clientEmailInput').value = '';
         document.getElementById('clientAddressInput').value = '';
@@ -797,6 +1057,7 @@ const App = {
         if (!client) return;
         document.getElementById('clientIdInput').value = client.id;
         document.getElementById('clientNameInput').value = client.name;
+        document.getElementById('clientContactPersonInput').value = client.contact_person || '';
         document.getElementById('clientPhoneInput').value = client.phone || '';
         document.getElementById('clientEmailInput').value = client.email || '';
         document.getElementById('clientAddressInput').value = client.address || '';
@@ -820,6 +1081,7 @@ const App = {
                 this.showToast(this.t('toast_client_saved'));
                 this.closeModal('clientModal');
                 this.loadClients();
+                this.loadDashboard();
             } else {
                 this.showToast(result.message || 'Error', 'error');
             }
@@ -840,14 +1102,701 @@ const App = {
             if (result.success) {
                 this.showToast(this.t('toast_client_deleted'));
                 this.loadClients();
+                this.loadDashboard();
+            } else {
+                this.showToast(result.message || 'Error', 'error');
             }
         } catch (err) {
             this.showToast('Failed to delete client', 'error');
         }
     },
 
+    // Client Dossier & Financial Summary
+    async viewClientDossier(clientId) {
+        try {
+            const res = await fetch(`api.php?action=get_client&id=${clientId}`);
+            const result = await res.json();
+            if (result.success) {
+                const c = result.data;
+                const modalBody = document.getElementById('clientDossierContent');
+                if (!modalBody) return;
+
+                modalBody.innerHTML = `
+                    <div style="background:var(--primary-light); border:1px solid var(--primary-border); padding:20px; border-radius:var(--radius-lg); margin-bottom:20px;">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
+                            <div>
+                                <h3 style="font-size:20px; font-weight:800; color:var(--text-heading);">${this.escapeHtml(c.name)}</h3>
+                                <div style="font-size:14px; font-weight:600; color:#334155; margin-top:2px;">👤 Contact Person: ${this.escapeHtml(c.contact_person || 'Not specified')}</div>
+                                <div style="font-size:13px; color:#64748b; margin-top:4px;">📍 Address: ${this.escapeHtml(c.address || 'Manila')}</div>
+                                <div style="font-size:13px; color:#64748b;">📞 Phone: ${this.escapeHtml(c.phone || '-')} | ✉️ ${this.escapeHtml(c.email || '-')}</div>
+                            </div>
+                            <div style="text-align:right;">
+                                <button class="btn btn-primary btn-sm" onclick="App.openNewInvoiceForClient(${c.id})">
+                                    + ${this.t('btn_new_invoice')}
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Financial Snapshot -->
+                        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:12px; margin-top:16px;">
+                            <div style="background:#fff; padding:12px; border-radius:8px; border:1px solid var(--border);">
+                                <div style="font-size:11px; color:#64748b;">TOTAL BILLED</div>
+                                <div style="font-size:16px; font-weight:800; color:var(--primary);">${this.formatMoney(c.total_purchases)} ${this.currency}</div>
+                            </div>
+                            <div style="background:#fff; padding:12px; border-radius:8px; border:1px solid var(--border);">
+                                <div style="font-size:11px; color:#64748b;">TOTAL PAID</div>
+                                <div style="font-size:16px; font-weight:800; color:#15803d;">${this.formatMoney(c.total_paid)} ${this.currency}</div>
+                            </div>
+                            <div style="background:#fff; padding:12px; border-radius:8px; border:1px solid var(--border);">
+                                <div style="font-size:11px; color:#64748b;">REMAINING BALANCE</div>
+                                <div style="font-size:16px; font-weight:800; color:${parseFloat(c.total_balance) > 0 ? '#b91c1c' : '#15803d'};">${this.formatMoney(c.total_balance)} ${this.currency}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h4 style="font-size:15px; font-weight:700; margin-bottom:12px; color:var(--text-heading);">Client Invoices History (${c.invoices ? c.invoices.length : 0})</h4>
+                    <div class="table-container" style="border:1px solid var(--border);">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Invoice #</th>
+                                    <th>Date</th>
+                                    <th>Price</th>
+                                    <th>Paid</th>
+                                    <th>Balance</th>
+                                    <th>Assigned Partner</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${(!c.invoices || c.invoices.length === 0) ? `<tr><td colspan="8" style="text-align:center; padding:16px;">No invoices for this client</td></tr>` : 
+                                    c.invoices.map(inv => `
+                                        <tr>
+                                            <td><strong style="font-family:monospace; color:var(--primary);">${this.escapeHtml(inv.invoice_number)}</strong></td>
+                                            <td>${inv.issue_date}</td>
+                                            <td><strong>${this.formatMoney(inv.grand_total)} ${this.currency}</strong></td>
+                                            <td style="color:#15803d; font-weight:600;">${this.formatMoney(inv.paid_amount)}</td>
+                                            <td>${this.renderBalanceBadge(inv.remaining_balance)}</td>
+                                            <td>${this.renderPartnerBadge(inv.partner_assigned, inv.ibraheem_share, inv.fawas_share)}</td>
+                                            <td>${this.renderStatusBadge(inv.status)}</td>
+                                            <td>
+                                                <div class="actions-cell">
+                                                    <a href="print.php?id=${inv.id}&lang=${this.lang}" target="_blank" class="btn btn-sm btn-primary">🖨️ ${this.t('btn_print')}</a>
+                                                    <button class="btn btn-sm btn-outline" onclick="App.openQuickPaymentModal(${inv.id})">💳 Pay</button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    `).join('')
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+
+                this.openModal('clientDossierModal');
+            }
+        } catch (err) {
+            this.showToast('Failed to load client dossier', 'error');
+        }
+    },
+
+    openNewInvoiceForClient(clientId) {
+        this.closeAllModals();
+        this.openNewInvoiceModal();
+        const clientSelect = document.getElementById('invoiceClientSelect');
+        if (clientSelect) clientSelect.value = clientId;
+    },
+
     // ==========================================
-    // Products & Services Catalog
+    // 5. Client Self Fill-Up Portal & Installment Formula
+    // ==========================================
+    selectPortalPackage(pkgType) {
+        document.querySelectorAll('.package-choice-card').forEach(el => el.classList.remove('selected'));
+        const selectedCard = document.getElementById(`pkgCard_${pkgType}`);
+        if (selectedCard) selectedCard.classList.add('selected');
+
+        const serviceNameInput = document.getElementById('portalServiceName');
+        const priceInput = document.getElementById('portalPrice');
+        const descInput = document.getElementById('portalDescription');
+
+        if (pkgType === 'monthly_rescue') {
+            serviceNameInput.value = 'Package of E-Commerce Maintenance Services and Web maintenance including Rescue System';
+            priceInput.value = '7500.00';
+            descInput.value = "Includes: 1. Web design / Web system\n2. Job post / Job Offer\n3. Deployment System (QMS)\n4. Maintenance System\n5. Location Rescue system\n6. E-commerce site with SSL Security\n7. PRA Deployment\n8. FRA/SRA SYSTEM (IF NEEDED)\n9. Block Listing for OFW\n10. Voucher System\nHosting and domain, with SSL security\n--- Nothing Follows ---";
+        } else if (pkgType === 'annual_rescue') {
+            serviceNameInput.value = 'Package of E-Commerce Maintenance & Web Maintenance (Annual Contract)';
+            priceInput.value = '90000.00';
+            descInput.value = "Includes: 1. Web design / Web system\n2. Job post / Job Offer\n3. Deployment System\n4. Company E-mail Server Maintenance\n5. Location Rescue system\n6. E-commerce site with SSL Security\n7. PRA Deployment\n8. FRA/SRA SYSTEM (IF NEEDED)\n9. Block Listing for OFW\n10. Voucher System\nHosting and domain, with SSL security\n--- Nothing Follows ---";
+        } else if (pkgType === 'web_online') {
+            serviceNameInput.value = 'Web and System (Online) & Maintenance Services';
+            priceInput.value = '5000.00';
+            descInput.value = "Web and System (Online) & Maintenance Services for the Month";
+        } else if (pkgType === 'hardware_support') {
+            serviceNameInput.value = 'Hardware & Server Maintenance Technical Support';
+            priceInput.value = '5500.00';
+            descInput.value = "Includes: 1. Web design / Web system\n2. Job post / Job Offer\n3. Technical Support (Hardware Maintenance)\n4. Company E-mail Server Maintenance\n5. Location Rescue system\n6. E-commerce site with SSL Security\n7. PRA Deployment\n8. FRA/SRA SYSTEM\n9. Company Email Maintenance\n10. Voucher System\nHosting and domain, with SSL security\n--- Nothing Follows ---";
+        } else {
+            serviceNameInput.value = 'Custom Services Package';
+            priceInput.value = '20000.00';
+            descInput.value = '';
+        }
+
+        this.updatePortalFormula();
+    },
+
+    updatePortalFormula() {
+        const price = parseFloat(document.getElementById('portalPrice')?.value) || 0;
+        const selectedTermRadio = document.querySelector('input[name="payment_term"]:checked');
+        const term = selectedTermRadio ? selectedTermRadio.value : 'full';
+
+        let months = 1;
+        if (term === '3_months') months = 3;
+        if (term === '6_months') months = 6;
+        if (term === 'custom') {
+            months = Math.max(1, parseInt(document.getElementById('portalCustomMonths')?.value) || 1);
+        }
+
+        const monthlyPayment = (months > 0) ? (price / months) : price;
+
+        const formulaBox = document.getElementById('portalFormulaDisplay');
+        const monthlyAmountEl = document.getElementById('portalMonthlyAmount');
+        const termSummaryEl = document.getElementById('portalTermSummary');
+
+        if (term === 'full') {
+            if (formulaBox) formulaBox.style.display = 'none';
+        } else {
+            if (formulaBox) formulaBox.style.display = 'block';
+            if (monthlyAmountEl) monthlyAmountEl.innerText = `PHP ${this.formatMoney(monthlyPayment)} / month`;
+            if (termSummaryEl) {
+                termSummaryEl.innerText = `Formula: Total PHP ${this.formatMoney(price)} ÷ ${months} Months = PHP ${this.formatMoney(monthlyPayment)} per month`;
+            }
+        }
+    },
+
+    async submitClientInvoice() {
+        const form = document.getElementById('clientPortalForm');
+        const formData = new FormData(form);
+        formData.append('action', 'submit_client_invoice');
+
+        try {
+            const res = await fetch('api.php', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await res.json();
+            if (result.success) {
+                const data = result.data;
+                document.getElementById('portalFormSection').style.display = 'none';
+                const successSection = document.getElementById('portalSuccessSection');
+                successSection.style.display = 'block';
+
+                document.getElementById('portalSuccessInvoiceNum').innerText = data.invoice_number;
+                document.getElementById('portalSuccessClient').innerText = data.client_name;
+                document.getElementById('portalSuccessPrice').innerText = `${this.formatMoney(data.grand_total)} PHP`;
+                document.getElementById('portalSuccessBalance').innerText = `${this.formatMoney(data.remaining_balance)} PHP`;
+                
+                const planText = (data.installment_months > 1) 
+                    ? `${data.installment_months} Months Installment (PHP ${this.formatMoney(data.monthly_payment)} / mo)`
+                    : `Full Payment (1x)`;
+                document.getElementById('portalSuccessPlan').innerText = planText;
+
+                const partnerText = (data.partner_assigned === 'both') 
+                    ? `Both (Mr. Ibraheem & Mr. Fawas - 50/50 Split)`
+                    : ((data.partner_assigned === 'ibraheem') ? `Mr. Ibraheem` : `Mr. Fawas`);
+                document.getElementById('portalSuccessPartner').innerText = partnerText;
+
+                document.getElementById('portalSuccessPrintBtn').href = `print.php?id=${data.invoice_id}&lang=${this.lang}`;
+
+                this.showToast(result.message);
+                this.loadDashboard();
+                this.loadInvoices();
+                this.loadClients();
+            } else {
+                this.showToast(result.message || 'Error submitting request', 'error');
+            }
+        } catch (err) {
+            this.showToast('Network error while submitting invoice request', 'error');
+        }
+    },
+
+    resetPortalForm() {
+        document.getElementById('clientPortalForm').reset();
+        document.getElementById('portalFormSection').style.display = 'block';
+        document.getElementById('portalSuccessSection').style.display = 'none';
+        this.selectPortalPackage('monthly_rescue');
+    },
+
+    // ==========================================
+    // 6. Quick Payment Modal & Partner Split Preview
+    // ==========================================
+    openQuickPaymentModal(invoiceId) {
+        const inv = this.invoices.find(i => i.id == invoiceId);
+        if (!inv) return;
+
+        document.getElementById('quickPayInvoiceId').value = inv.id;
+        document.getElementById('quickPayInvoiceNum').innerText = inv.invoice_number;
+        document.getElementById('quickPayClientName').innerText = inv.client_name;
+        document.getElementById('quickPayGrandTotal').innerText = `${this.formatMoney(inv.grand_total)} ${this.currency}`;
+        document.getElementById('quickPayCurrentPaid').innerText = `${this.formatMoney(inv.paid_amount)} ${this.currency}`;
+        document.getElementById('quickPayCurrentBalance').innerText = `${this.formatMoney(inv.remaining_balance)} ${this.currency}`;
+
+        // Partner assignment info
+        const partner = inv.partner_assigned || 'both';
+        document.getElementById('quickPayPartnerLabel').innerText = (partner === 'both') 
+            ? 'Both (Mr. Ibraheem & Mr. Fawas - 50/50 Split)' 
+            : ((partner === 'ibraheem') ? 'Mr. Ibraheem (100%)' : 'Mr. Fawas (100%)');
+
+        document.getElementById('quickPayAmountInput').value = inv.remaining_balance > 0 ? inv.remaining_balance : '';
+        document.getElementById('quickPayMethodSelect').value = 'gcash';
+        document.getElementById('quickPayNoteInput').value = '';
+
+        this.openModal('quickPaymentModal');
+    },
+
+    async submitQuickPayment() {
+        const form = document.getElementById('quickPaymentForm');
+        const formData = new FormData(form);
+        formData.append('action', 'record_payment');
+
+        try {
+            const res = await fetch('api.php', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await res.json();
+            if (result.success) {
+                this.showToast(this.t('toast_payment_recorded'));
+                this.closeModal('quickPaymentModal');
+                this.loadInvoices();
+                this.loadDashboard();
+                this.loadClients();
+            } else {
+                this.showToast(result.message || 'Error', 'error');
+            }
+        } catch (err) {
+            this.showToast('Failed to record payment', 'error');
+        }
+    },
+
+    // ==========================================
+    // 7. Full Invoice Builder (Create & Edit)
+    // ==========================================
+    openNewInvoiceModal() {
+        this.editingInvoiceId = null;
+        document.getElementById('invoiceIdInput').value = '';
+        document.getElementById('invoiceFormTitle').innerText = this.t('btn_new_invoice');
+        
+        document.getElementById('toggleNewClientCheck').checked = false;
+        document.getElementById('quickNewClientBox').style.display = 'none';
+        document.getElementById('existingClientGroup').style.display = 'block';
+        document.getElementById('quickNewClientName').value = '';
+        document.getElementById('quickNewContactPerson').value = '';
+        document.getElementById('quickNewPhone').value = '';
+        document.getElementById('quickNewAddress').value = '';
+
+        const nextNum = Math.floor(100 + Math.random() * 900);
+        document.getElementById('invoiceNumberInput').value = `00${nextNum}`;
+        document.getElementById('invoiceIssueDate').value = new Date().toISOString().split('T')[0];
+        
+        const dueDate = new Date();
+        dueDate.setDate(dueDate.getDate() + 15);
+        document.getElementById('invoiceDueDate').value = dueDate.toISOString().split('T')[0];
+
+        document.getElementById('invoiceStatusSelect').value = 'paid';
+        document.getElementById('invoicePaymentMethod').value = 'gcash';
+        document.getElementById('invoicePaymentTerm').value = 'full';
+        document.getElementById('invoiceInstallmentMonths').value = '1';
+        document.getElementById('invoicePartnerAssigned').value = 'both';
+        document.getElementById('invoicePriceNote').value = 'PHP 7,500 Per Month';
+        document.getElementById('invoiceAmountDueNote').value = '7,500 PHP';
+        document.getElementById('invoicePaidAmountInput').value = '7500.00';
+        document.getElementById('invoiceRemainingBalanceInput').value = '0.00';
+        document.getElementById('invoiceNotesInput').value = "We are open for your suggestions on improving our services with you.\nPayment can be transferred through STC Pay or GCash (Account Name: Ferdenand Sabado, GCash #: 09617190588).\nThanking you for doing Business with us!";
+
+        const tbody = document.getElementById('invoiceItemsTableBody');
+        tbody.innerHTML = '';
+        this.addInvoiceItemRow(
+            'Package of E-Commerce Maintenance Services and Web maintenance including Rescue System',
+            "Includes: 1. Web design / Web system\n2. Job post / Job Offer\n3 Deployment System (QMS)\n4. Maintenance System\n5. Location Rescue system\n6. E-commerce site with SSL Security\n7. PRA Deployment\n8. FRA/SRA SYSTEM (IF NEEDED)\n9. Block Listing for OFW\n10. Voucher System\nHosting and domain, with SSL security\n--- Nothing Follows ---",
+            1,
+            7500.00,
+            0,
+            0
+        );
+
+        this.openModal('invoiceModal');
+    },
+
+    async editInvoice(id) {
+        try {
+            const res = await fetch(`api.php?action=get_invoice&id=${id}`);
+            const result = await res.json();
+            if (!result.success) {
+                this.showToast(result.message, 'error');
+                return;
+            }
+
+            const inv = result.data;
+            this.editingInvoiceId = inv.id;
+            document.getElementById('invoiceIdInput').value = inv.id;
+            document.getElementById('invoiceFormTitle').innerText = `${this.t('btn_edit')} ${inv.invoice_number}`;
+            document.getElementById('invoiceNumberInput').value = inv.invoice_number;
+
+            document.getElementById('toggleNewClientCheck').checked = false;
+            document.getElementById('quickNewClientBox').style.display = 'none';
+            document.getElementById('existingClientGroup').style.display = 'block';
+            document.getElementById('invoiceClientSelect').value = inv.client_id || '';
+
+            document.getElementById('invoiceIssueDate').value = inv.issue_date;
+            document.getElementById('invoiceDueDate').value = inv.due_date || '';
+            document.getElementById('invoiceStatusSelect').value = inv.status;
+            document.getElementById('invoicePaymentMethod').value = inv.payment_method || 'gcash';
+            document.getElementById('invoicePaymentTerm').value = inv.payment_term || 'full';
+            document.getElementById('invoiceInstallmentMonths').value = inv.installment_months || 1;
+            document.getElementById('invoicePartnerAssigned').value = inv.partner_assigned || 'both';
+            document.getElementById('invoicePriceNote').value = inv.price_note || '';
+            document.getElementById('invoiceAmountDueNote').value = inv.amount_due_note || '';
+            document.getElementById('invoicePaidAmountInput').value = inv.paid_amount || '0.00';
+            document.getElementById('invoiceRemainingBalanceInput').value = inv.remaining_balance || '0.00';
+            document.getElementById('invoiceNotesInput').value = inv.notes || '';
+
+            const tbody = document.getElementById('invoiceItemsTableBody');
+            tbody.innerHTML = '';
+            if (inv.items && inv.items.length > 0) {
+                inv.items.forEach(it => {
+                    this.addInvoiceItemRow(it.item_name, it.description, it.quantity, it.unit_price, it.discount, it.tax_rate);
+                });
+            } else {
+                this.addInvoiceItemRow();
+            }
+
+            this.recalculateTotals();
+            this.openModal('invoiceModal');
+        } catch (err) {
+            this.showToast('Failed to load invoice details', 'error');
+        }
+    },
+
+    onInvoiceTermChange() {
+        const term = document.getElementById('invoicePaymentTerm').value;
+        const monthsInput = document.getElementById('invoiceInstallmentMonths');
+        if (term === '3_months') monthsInput.value = 3;
+        else if (term === '6_months') monthsInput.value = 6;
+        else if (term === 'full') monthsInput.value = 1;
+        this.recalculateTotals();
+    },
+
+    addInvoiceItemRow(name = '', desc = '', qty = 1, price = 0, discount = 0, tax = 0) {
+        const tbody = document.getElementById('invoiceItemsTableBody');
+        if (!tbody) return;
+
+        const row = document.createElement('tr');
+        row.className = 'item-builder-row';
+        row.innerHTML = `
+            <td>
+                <input type="text" class="form-control item-name" value="${this.escapeHtml(name)}" placeholder="Service / Item name *" required style="font-weight:700; margin-bottom:4px;">
+                <textarea class="form-control item-desc" rows="3" placeholder="Includes details / specifications...">${this.escapeHtml(desc)}</textarea>
+            </td>
+            <td>
+                <input type="number" step="0.01" min="0.01" class="form-control item-qty text-center" value="${qty}">
+            </td>
+            <td>
+                <input type="number" step="0.01" min="0" class="form-control item-price" value="${price}">
+            </td>
+            <td>
+                <input type="number" step="0.01" min="0" class="form-control item-discount" value="${discount}">
+            </td>
+            <td>
+                <input type="number" step="0.01" min="0" class="form-control item-tax text-center" value="${tax}">
+            </td>
+            <td style="text-align:center; font-weight:700; vertical-align:middle;">
+                <span class="item-line-total">0.00</span>
+            </td>
+            <td style="text-align:center; vertical-align:middle;">
+                <button type="button" class="btn btn-sm btn-outline" style="color:#ef4444; padding:4px 6px;" onclick="this.closest('tr').remove(); App.recalculateTotals();">
+                    ✕
+                </button>
+            </td>
+        `;
+
+        tbody.appendChild(row);
+
+        row.querySelectorAll('input').forEach(input => {
+            input.addEventListener('input', () => this.recalculateTotals());
+        });
+
+        this.recalculateTotals();
+    },
+
+    recalculateTotals() {
+        let subtotal = 0;
+        let totalDiscount = 0;
+        let totalTax = 0;
+
+        document.querySelectorAll('.item-builder-row').forEach(row => {
+            const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+            const price = parseFloat(row.querySelector('.item-price').value) || 0;
+            const discount = parseFloat(row.querySelector('.item-discount').value) || 0;
+            const taxRate = parseFloat(row.querySelector('.item-tax').value) || 0;
+
+            const lineGross = qty * price;
+            const lineDiscount = Math.min(lineGross, discount);
+            const lineTaxable = Math.max(0, lineGross - lineDiscount);
+            const lineTax = (lineTaxable * taxRate) / 100;
+            const lineTotal = lineTaxable + lineTax;
+
+            subtotal += lineGross;
+            totalDiscount += lineDiscount;
+            totalTax += lineTax;
+
+            const lineTotalEl = row.querySelector('.item-line-total');
+            if (lineTotalEl) lineTotalEl.innerText = this.formatMoney(lineTotal);
+        });
+
+        const grandTotal = Math.max(0, subtotal - totalDiscount + totalTax);
+
+        document.getElementById('calcSubtotal').innerText = `${this.formatMoney(subtotal)} ${this.currency}`;
+        document.getElementById('calcDiscount').innerText = `${this.formatMoney(totalDiscount)} ${this.currency}`;
+        document.getElementById('calcTax').innerText = `${this.formatMoney(totalTax)} ${this.currency}`;
+        document.getElementById('calcGrandTotal').innerText = `${this.formatMoney(grandTotal)} ${this.currency}`;
+
+        // Compute monthly installment
+        const months = Math.max(1, parseInt(document.getElementById('invoiceInstallmentMonths')?.value) || 1);
+        const monthly = (months > 0) ? (grandTotal / months) : grandTotal;
+        const monthlyCalcEl = document.getElementById('calcMonthlyPayment');
+        if (monthlyCalcEl) monthlyCalcEl.innerText = `${this.formatMoney(monthly)} ${this.currency} (${months} mos)`;
+
+        const paidAmount = parseFloat(document.getElementById('invoicePaidAmountInput').value) || 0;
+        const balanceField = document.getElementById('invoiceRemainingBalanceInput');
+        if (balanceField && !balanceField.dataset.manualOverride) {
+            balanceField.value = Math.max(0, grandTotal - paidAmount).toFixed(2);
+        }
+
+        const balCalcEl = document.getElementById('calcRemainingBalance');
+        if (balCalcEl) balCalcEl.innerText = `${this.formatMoney(balanceField.value)} ${this.currency}`;
+    },
+
+    async saveInvoice() {
+        const id = document.getElementById('invoiceIdInput').value;
+        const invoiceNumber = document.getElementById('invoiceNumberInput').value.trim();
+        const clientId = document.getElementById('invoiceClientSelect').value;
+        const isNewClient = document.getElementById('toggleNewClientCheck')?.checked;
+        const newClientName = document.getElementById('quickNewClientName')?.value.trim();
+        const newContactPerson = document.getElementById('quickNewContactPerson')?.value.trim();
+        const newClientPhone = document.getElementById('quickNewPhone')?.value.trim();
+        const newClientAddress = document.getElementById('quickNewAddress')?.value.trim();
+
+        const issueDate = document.getElementById('invoiceIssueDate').value;
+        const dueDate = document.getElementById('invoiceDueDate').value;
+        const status = document.getElementById('invoiceStatusSelect').value;
+        const paymentMethod = document.getElementById('invoicePaymentMethod').value;
+        const paymentTerm = document.getElementById('invoicePaymentTerm').value;
+        const installmentMonths = document.getElementById('invoiceInstallmentMonths').value;
+        const partnerAssigned = document.getElementById('invoicePartnerAssigned').value;
+
+        const priceNote = document.getElementById('invoicePriceNote').value.trim();
+        const amountDueNote = document.getElementById('invoiceAmountDueNote').value.trim();
+        const paidAmount = document.getElementById('invoicePaidAmountInput').value;
+        const remainingBalance = document.getElementById('invoiceRemainingBalanceInput').value;
+        const notes = document.getElementById('invoiceNotesInput').value.trim();
+
+        const items = [];
+        document.querySelectorAll('.item-builder-row').forEach(row => {
+            const itemName = row.querySelector('.item-name').value.trim();
+            if (itemName) {
+                items.push({
+                    item_name: itemName,
+                    description: row.querySelector('.item-desc').value.trim(),
+                    quantity: parseFloat(row.querySelector('.item-qty').value) || 1,
+                    unit_price: parseFloat(row.querySelector('.item-price').value) || 0,
+                    discount: parseFloat(row.querySelector('.item-discount').value) || 0,
+                    tax_rate: parseFloat(row.querySelector('.item-tax').value) || 0
+                });
+            }
+        });
+
+        if (items.length === 0) {
+            this.showToast(this.t('toast_item_required'), 'error');
+            return;
+        }
+
+        const payload = {
+            action: 'save_invoice',
+            id: id,
+            invoice_number: invoiceNumber,
+            client_id: clientId,
+            new_client_name: isNewClient ? newClientName : '',
+            new_contact_person: isNewClient ? newContactPerson : '',
+            new_client_phone: isNewClient ? newClientPhone : '',
+            new_client_address: isNewClient ? newClientAddress : '',
+            issue_date: issueDate,
+            due_date: dueDate,
+            status: status,
+            payment_method: paymentMethod,
+            payment_term: paymentTerm,
+            installment_months: installmentMonths,
+            partner_assigned: partnerAssigned,
+            price_note: priceNote,
+            amount_due_note: amountDueNote,
+            paid_amount: paidAmount,
+            remaining_balance: remainingBalance,
+            notes: notes,
+            items: items
+        };
+
+        try {
+            const res = await fetch('api.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const result = await res.json();
+            if (result.success) {
+                this.showToast(this.t('toast_invoice_saved'));
+                this.closeModal('invoiceModal');
+                this.loadInvoices();
+                this.loadDashboard();
+                this.loadClients();
+            } else {
+                this.showToast(result.message || 'Error saving invoice', 'error');
+            }
+        } catch (err) {
+            this.showToast('Failed to save invoice', 'error');
+        }
+    },
+
+    async deleteInvoice(id) {
+        if (!confirm(this.t('confirm_delete_invoice'))) return;
+        try {
+            const res = await fetch('api.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'delete_invoice', id: id })
+            });
+            const result = await res.json();
+            if (result.success) {
+                this.showToast(this.t('toast_invoice_deleted'));
+                this.loadInvoices();
+                this.loadDashboard();
+                this.loadClients();
+            } else {
+                this.showToast(result.message || 'Error', 'error');
+            }
+        } catch (err) {
+            this.showToast('Failed to delete invoice', 'error');
+        }
+    },
+
+    async viewInvoice(id) {
+        try {
+            const res = await fetch(`api.php?action=get_invoice&id=${id}`);
+            const result = await res.json();
+            if (!result.success) return;
+
+            const inv = result.data;
+            const container = document.getElementById('viewInvoiceModalContent');
+            if (!container) return;
+
+            const partnerText = (inv.partner_assigned === 'both') 
+                ? 'Both (Mr. Ibraheem & Mr. Fawas - 50/50 Split)' 
+                : ((inv.partner_assigned === 'ibraheem') ? 'Mr. Ibraheem' : 'Mr. Fawas');
+
+            container.innerHTML = `
+                <div style="border-bottom:1px solid var(--border); padding-bottom:16px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:flex-start;">
+                    <div>
+                        <h3 style="font-size:20px; font-weight:800; color:var(--primary); font-family:monospace;">${this.escapeHtml(inv.invoice_number)}</h3>
+                        <div style="font-size:14px; font-weight:700; color:#334155; margin-top:2px;">${this.escapeHtml(inv.client_name || this.t('cash_client'))}</div>
+                        ${inv.contact_person ? `<div style="font-size:12px; color:#64748b;">👤 ${this.escapeHtml(inv.contact_person)}</div>` : ''}
+                        ${inv.client_address ? `<div style="font-size:12px; color:#64748b;">📍 ${this.escapeHtml(inv.client_address)}</div>` : ''}
+                    </div>
+                    <div style="text-align:right;">
+                        <div>${this.renderStatusBadge(inv.status)}</div>
+                        <div style="font-size:12px; color:#64748b; margin-top:4px;">Date: ${inv.issue_date}</div>
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; background:var(--bg-muted); padding:14px; border-radius:8px; margin-bottom:16px;">
+                    <div>
+                        <span style="font-size:11px; color:#64748b; display:block;">TOTAL COST</span>
+                        <strong style="font-size:16px; color:var(--primary);">${this.formatMoney(inv.grand_total)} ${this.currency}</strong>
+                    </div>
+                    <div>
+                        <span style="font-size:11px; color:#64748b; display:block;">AMOUNT PAID</span>
+                        <strong style="font-size:16px; color:#15803d;">${this.formatMoney(inv.paid_amount)} ${this.currency}</strong>
+                    </div>
+                    <div>
+                        <span style="font-size:11px; color:#64748b; display:block;">REMAINING BALANCE</span>
+                        <strong style="font-size:16px; color:${parseFloat(inv.remaining_balance) > 0 ? '#b91c1c' : '#15803d'};">${this.formatMoney(inv.remaining_balance)} ${this.currency}</strong>
+                    </div>
+                </div>
+
+                <!-- Partner & Payment Plan Snapshot -->
+                <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; background:#f8fafc; border:1px solid var(--border); padding:12px; border-radius:6px; margin-bottom:16px; font-size:12px;">
+                    <div>
+                        <span style="color:#64748b;">Assigned Account:</span> 
+                        <strong>${partnerText}</strong>
+                        <div style="font-size:11px; color:#64748b; margin-top:2px;">
+                            Share: Ibraheem ₱${this.formatMoney(inv.ibraheem_share)} | Fawas ₱${this.formatMoney(inv.fawas_share)}
+                        </div>
+                    </div>
+                    <div>
+                        <span style="color:#64748b;">Payment Plan:</span>
+                        <strong>${inv.installment_months > 1 ? `${inv.installment_months} Months Installment (₱${this.formatMoney(inv.monthly_payment)}/mo)` : 'Full Payment'}</strong>
+                        <div style="font-size:11px; color:#64748b; margin-top:2px;">Method: ${inv.payment_method ? inv.payment_method.toUpperCase() : 'GCASH'} (Ferdenand Sabado 09617190588)</div>
+                    </div>
+                </div>
+
+                <table class="data-table" style="margin-bottom:16px;">
+                    <thead>
+                        <tr>
+                            <th>Description</th>
+                            <th>Unit Price</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${inv.items.map(it => `
+                            <tr>
+                                <td>
+                                    <strong>${this.escapeHtml(it.item_name)}</strong>
+                                    ${it.description ? `<div style="font-size:11.5px; color:#475569; white-space:pre-line; margin-top:4px;">${this.escapeHtml(it.description)}</div>` : ''}
+                                </td>
+                                <td>${this.formatMoney(it.unit_price)}</td>
+                                <td><strong>${this.formatMoney(it.total)}</strong></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+
+                ${inv.notes ? `
+                    <div style="background:#fef2f2; border:1px solid #fecaca; padding:12px; border-radius:6px; font-size:12px; color:#991b1b; margin-bottom:16px;">
+                        <strong>Notes & Payment Info:</strong>
+                        <div style="white-space:pre-line; margin-top:3px;">${this.escapeHtml(inv.notes)}</div>
+                    </div>
+                ` : ''}
+
+                <div style="display:flex; justify-content:flex-end; gap:10px;">
+                    <a href="print.php?id=${inv.id}&lang=${this.lang}" target="_blank" class="btn btn-primary">
+                        🖨️ ${this.t('btn_print_official')}
+                    </a>
+                    <button class="btn btn-outline" onclick="App.openQuickPaymentModal(${inv.id})">
+                        💳 ${this.t('btn_record_payment')}
+                    </button>
+                    <button class="btn btn-light" onclick="App.closeModal('viewInvoiceModal')">
+                        ${this.t('btn_close')}
+                    </button>
+                </div>
+            `;
+
+            this.openModal('viewInvoiceModal');
+        } catch (err) {
+            console.error(err);
+        }
+    },
+
+    // ==========================================
+    // 8. Products Catalog
     // ==========================================
     async loadProducts() {
         try {
@@ -874,7 +1823,7 @@ const App = {
         tbody.innerHTML = this.products.map(p => `
             <tr>
                 <td><strong>${this.escapeHtml(p.name)}</strong></td>
-                <td>${this.escapeHtml(p.description || '-')}</td>
+                <td><div style="font-size:12px; color:var(--text-muted); max-width:360px;">${this.escapeHtml(p.description || '-')}</div></td>
                 <td><strong>${this.formatMoney(p.price)} ${this.currency}</strong></td>
                 <td>${p.tax_rate}%</td>
                 <td>
@@ -890,21 +1839,21 @@ const App = {
     openNewProductModal() {
         document.getElementById('productIdInput').value = '';
         document.getElementById('productNameInput').value = '';
-        document.getElementById('productPriceInput').value = '0';
-        document.getElementById('productTaxInput').value = this.taxRate;
+        document.getElementById('productPriceInput').value = '';
+        document.getElementById('productTaxInput').value = '0';
         document.getElementById('productDescInput').value = '';
         document.getElementById('productModalTitle').innerText = this.t('product_modal_title_new');
         this.openModal('productModal');
     },
 
     editProduct(id) {
-        const prod = this.products.find(p => p.id == id);
-        if (!prod) return;
-        document.getElementById('productIdInput').value = prod.id;
-        document.getElementById('productNameInput').value = prod.name;
-        document.getElementById('productPriceInput').value = prod.price;
-        document.getElementById('productTaxInput').value = prod.tax_rate;
-        document.getElementById('productDescInput').value = prod.description || '';
+        const p = this.products.find(x => x.id == id);
+        if (!p) return;
+        document.getElementById('productIdInput').value = p.id;
+        document.getElementById('productNameInput').value = p.name;
+        document.getElementById('productPriceInput').value = p.price;
+        document.getElementById('productTaxInput').value = p.tax_rate;
+        document.getElementById('productDescInput').value = p.description || '';
         document.getElementById('productModalTitle').innerText = this.t('product_modal_title_edit');
         this.openModal('productModal');
     },
@@ -928,7 +1877,7 @@ const App = {
                 this.showToast(result.message || 'Error', 'error');
             }
         } catch (err) {
-            this.showToast('Failed to save product', 'error');
+            this.showToast('Failed to save service', 'error');
         }
     },
 
@@ -944,507 +1893,330 @@ const App = {
             if (result.success) {
                 this.showToast(this.t('toast_product_deleted'));
                 this.loadProducts();
-            }
-        } catch (err) {
-            this.showToast('Failed to delete item', 'error');
-        }
-    },
-
-    // ==========================================
-    // Invoice Creation & Editing Form
-    // ==========================================
-    async openNewInvoiceModal() {
-        this.editingInvoiceId = null;
-        document.getElementById('invoiceFormTitle').innerText = (this.lang === 'ar' ? 'إنشاء فاتورة جديدة' : 'Create New Invoice');
-        document.getElementById('invoiceIdInput').value = '';
-        
-        // Fetch next sequential number
-        try {
-            const res = await fetch('api.php?action=get_next_number');
-            const result = await res.json();
-            if (result.success) {
-                document.getElementById('invoiceNumberInput').value = result.data.next_number;
-            }
-        } catch (e) {
-            document.getElementById('invoiceNumberInput').value = 'INV-' + Date.now().toString().slice(-6);
-        }
-
-        // Set default dates
-        const today = new Date().toISOString().split('T')[0];
-        const next15Days = new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0];
-        document.getElementById('invoiceIssueDate').value = today;
-        document.getElementById('invoiceDueDate').value = next15Days;
-
-        // Reset selects
-        document.getElementById('invoiceClientSelect').value = '';
-        document.getElementById('invoiceStatusSelect').value = 'unpaid';
-        document.getElementById('invoicePaymentMethod').value = 'bank_transfer';
-        document.getElementById('invoiceNotesInput').value = this.settings.invoice_footer || (this.lang === 'ar' ? 'شكراً لتعاملكم معنا.' : 'Thank you for your business.');
-
-        // Clear items table and add initial empty row
-        const itemsBody = document.getElementById('invoiceItemsTableBody');
-        itemsBody.innerHTML = '';
-        this.addInvoiceItemRow();
-
-        this.openModal('invoiceModal');
-    },
-
-    async editInvoice(id) {
-        this.editingInvoiceId = id;
-        document.getElementById('invoiceFormTitle').innerText = (this.lang === 'ar' ? 'تعديل الفاتورة' : 'Edit Invoice');
-
-        try {
-            const res = await fetch(`api.php?action=get_invoice&id=${id}`);
-            const result = await res.json();
-            if (result.success) {
-                const inv = result.data;
-                document.getElementById('invoiceIdInput').value = inv.id;
-                document.getElementById('invoiceNumberInput').value = inv.invoice_number;
-                document.getElementById('invoiceIssueDate').value = inv.issue_date;
-                document.getElementById('invoiceDueDate').value = inv.due_date || '';
-                document.getElementById('invoiceClientSelect').value = inv.client_id || '';
-                document.getElementById('invoiceStatusSelect').value = inv.status;
-                document.getElementById('invoicePaymentMethod').value = inv.payment_method;
-                document.getElementById('invoiceNotesInput').value = inv.notes || '';
-
-                // Load line items
-                const itemsBody = document.getElementById('invoiceItemsTableBody');
-                itemsBody.innerHTML = '';
-
-                if (inv.items && inv.items.length > 0) {
-                    inv.items.forEach(it => {
-                        this.addInvoiceItemRow(it);
-                    });
-                } else {
-                    this.addInvoiceItemRow();
-                }
-
-                this.calculateInvoiceTotals();
-                this.openModal('invoiceModal');
-            }
-        } catch (err) {
-            this.showToast('Failed to fetch invoice details', 'error');
-        }
-    },
-
-    addInvoiceItemRow(data = null) {
-        const tbody = document.getElementById('invoiceItemsTableBody');
-        if (!tbody) return;
-
-        const row = document.createElement('tr');
-        const defaultTax = data ? data.tax_rate : this.taxRate;
-        const defaultQty = data ? data.quantity : 1;
-        const defaultPrice = data ? data.unit_price : 0;
-        const defaultDiscount = data ? data.discount : 0;
-        const defaultName = data ? data.item_name : '';
-        const defaultDesc = data ? data.description : '';
-
-        const presetPrompt = (this.lang === 'ar' ? '-- اختر من الدليل أو اكتب يدوياً --' : '-- Choose from catalog or type --');
-        const namePlaceholder = (this.lang === 'ar' ? 'اسم البند / الخدمة *' : 'Item / Service name *');
-        const descPlaceholder = (this.lang === 'ar' ? 'وصف إضافي (اختياري)' : 'Description (optional)');
-
-        // Product presets options
-        const productOptions = `<option value="">${presetPrompt}</option>` + 
-            this.products.map(p => `<option value="${p.id}" data-name="${this.escapeHtml(p.name)}" data-price="${p.price}" data-tax="${p.tax_rate}" data-desc="${this.escapeHtml(p.description || '')}">${this.escapeHtml(p.name)} (${p.price} ${this.currency})</option>`).join('');
-
-        row.innerHTML = `
-            <td>
-                <select class="form-control item-preset-select" style="margin-bottom: 4px; font-size:12px;">
-                    ${productOptions}
-                </select>
-                <input type="text" class="form-control item-name-input" placeholder="${namePlaceholder}" value="${this.escapeHtml(defaultName)}" required>
-                <input type="text" class="form-control item-desc-input" placeholder="${descPlaceholder}" value="${this.escapeHtml(defaultDesc)}" style="margin-top: 4px; font-size: 11.5px;">
-            </td>
-            <td>
-                <input type="number" step="0.01" min="0.01" class="form-control item-qty-input" value="${defaultQty}" style="text-align:center;">
-            </td>
-            <td>
-                <input type="number" step="0.01" min="0" class="form-control item-price-input" value="${defaultPrice}">
-            </td>
-            <td>
-                <input type="number" step="0.01" min="0" class="form-control item-disc-input" value="${defaultDiscount}">
-            </td>
-            <td>
-                <input type="number" step="0.01" min="0" class="form-control item-tax-input" value="${defaultTax}" style="text-align:center;">
-            </td>
-            <td style="font-weight: 700; color: var(--primary-dark); text-align: center;">
-                <span class="item-line-total">0.00</span>
-            </td>
-            <td style="text-align: center;">
-                <button type="button" class="btn btn-sm btn-outline remove-row-btn" style="color:#ef4444;" title="${this.t('btn_delete')}">
-                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                </button>
-            </td>
-        `;
-
-        tbody.appendChild(row);
-
-        // Bind Row Events
-        const presetSelect = row.querySelector('.item-preset-select');
-        const nameInput = row.querySelector('.item-name-input');
-        const descInput = row.querySelector('.item-desc-input');
-        const qtyInput = row.querySelector('.item-qty-input');
-        const priceInput = row.querySelector('.item-price-input');
-        const discInput = row.querySelector('.item-disc-input');
-        const taxInput = row.querySelector('.item-tax-input');
-        const removeBtn = row.querySelector('.remove-row-btn');
-
-        // Preset select autofill
-        presetSelect.addEventListener('change', () => {
-            const opt = presetSelect.selectedOptions[0];
-            if (opt && opt.value) {
-                nameInput.value = opt.getAttribute('data-name');
-                priceInput.value = opt.getAttribute('data-price');
-                taxInput.value = opt.getAttribute('data-tax');
-                descInput.value = opt.getAttribute('data-desc');
-                this.calculateInvoiceTotals();
-            }
-        });
-
-        // Numeric change listeners
-        [qtyInput, priceInput, discInput, taxInput].forEach(inp => {
-            inp.addEventListener('input', () => this.calculateInvoiceTotals());
-        });
-
-        // Remove row
-        removeBtn.addEventListener('click', () => {
-            if (tbody.querySelectorAll('tr').length > 1) {
-                row.remove();
-                this.calculateInvoiceTotals();
             } else {
-                this.showToast(this.t('toast_item_required'), 'error');
+                this.showToast(result.message || 'Error', 'error');
             }
-        });
-
-        this.calculateInvoiceTotals();
+        } catch (err) {
+            this.showToast('Failed to delete service', 'error');
+        }
     },
 
-    calculateInvoiceTotals() {
-        const tbody = document.getElementById('invoiceItemsTableBody');
+    // ==========================================
+    // 9. Badges & Helpers
+    // ==========================================
+    renderStatusBadge(status) {
+        const labels = {
+            paid: { text: this.t('status_paid'), class: 'badge-paid' },
+            partial: { text: this.t('status_partial'), class: 'badge-partial' },
+            unpaid: { text: this.t('status_unpaid'), class: 'badge-unpaid' },
+            pending: { text: this.t('status_pending'), class: 'badge-pending' },
+            cancelled: { text: this.t('status_cancelled'), class: 'badge-cancelled' },
+        };
+        const s = labels[status] || { text: status, class: 'badge-pending' };
+        return `<span class="badge ${s.class}">${s.text}</span>`;
+    },
+
+    renderBalanceBadge(balance) {
+        const num = parseFloat(balance) || 0;
+        if (num <= 0) {
+            return `<span class="balance-pill-paid">✓ 0.00 (Paid)</span>`;
+        }
+        return `<span class="balance-pill-due">₱ ${this.formatMoney(num)} (Due)</span>`;
+    },
+
+    renderPartnerBadge(partner, ibraheemShare = 0, fawasShare = 0) {
+        if (partner === 'ibraheem') {
+            return `<span class="badge badge-partner-ibraheem">👤 Mr. Ibraheem</span>`;
+        } else if (partner === 'fawas') {
+            return `<span class="badge badge-partner-fawas">👤 Mr. Fawas</span>`;
+        } else {
+            return `<span class="badge badge-partner-both">🤝 Both (50/50)</span>`;
+        }
+    },
+
+    renderInstallmentPill(inv) {
+        const months = parseInt(inv.installment_months) || 1;
+        if (months > 1) {
+            return `<div class="installment-pill">📅 ${months} Mos (₱${this.formatMoney(inv.monthly_payment)}/mo)</div>`;
+        }
+        return `<div class="installment-pill" style="background:#e0f2fe; color:#0369a1;">Full Payment</div>`;
+    },
+
+    formatMoney(amount) {
+        return (parseFloat(amount) || 0).toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    },
+
+    escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    },
+
+    // ==========================================
+    // Admin Users Management Methods
+    // ==========================================
+    async loadUsers() {
+        try {
+            const res = await fetch('api.php?action=get_users');
+            const data = await res.json();
+            if (data.success) {
+                this.users = data.data || [];
+                this.renderUsersTable();
+            } else {
+                this.showToast(data.message || 'Failed to load admin users', 'error');
+            }
+        } catch (err) {
+            console.error('Error loading users:', err);
+        }
+    },
+
+    renderUsersTable() {
+        const tbody = document.getElementById('usersTableBody');
         if (!tbody) return;
 
-        let grandSubtotal = 0;
-        let grandDiscount = 0;
-        let grandTax = 0;
-
-        tbody.querySelectorAll('tr').forEach(row => {
-            const qty = parseFloat(row.querySelector('.item-qty-input')?.value) || 0;
-            const price = parseFloat(row.querySelector('.item-price-input')?.value) || 0;
-            const discount = parseFloat(row.querySelector('.item-disc-input')?.value) || 0;
-            const taxRate = parseFloat(row.querySelector('.item-tax-input')?.value) || 0;
-
-            const lineSub = qty * price;
-            const lineDisc = Math.min(lineSub, discount);
-            const taxable = Math.max(0, lineSub - lineDisc);
-            const lineTax = (taxable * taxRate) / 100;
-            const lineTotal = taxable + lineTax;
-
-            const totalSpan = row.querySelector('.item-line-total');
-            if (totalSpan) totalSpan.innerText = lineTotal.toFixed(2);
-
-            grandSubtotal += lineSub;
-            grandDiscount += lineDisc;
-            grandTax += lineTax;
-        });
-
-        const grandFinal = grandSubtotal - grandDiscount + grandTax;
-
-        // Update Summary Display
-        document.getElementById('calcSubtotal').innerText = `${grandSubtotal.toFixed(2)} ${this.currency}`;
-        document.getElementById('calcDiscount').innerText = `${grandDiscount.toFixed(2)} ${this.currency}`;
-        document.getElementById('calcTax').innerText = `${grandTax.toFixed(2)} ${this.currency}`;
-        document.getElementById('calcGrandTotal').innerText = `${grandFinal.toFixed(2)} ${this.currency}`;
-    },
-
-    async saveInvoice() {
-        const id = document.getElementById('invoiceIdInput').value;
-        const invoiceNumber = document.getElementById('invoiceNumberInput').value;
-        const clientId = document.getElementById('invoiceClientSelect').value;
-        const issueDate = document.getElementById('invoiceIssueDate').value;
-        const dueDate = document.getElementById('invoiceDueDate').value;
-        const status = document.getElementById('invoiceStatusSelect').value;
-        const paymentMethod = document.getElementById('invoicePaymentMethod').value;
-        const notes = document.getElementById('invoiceNotesInput').value;
-
-        // Collect Items
-        const items = [];
-        const tbody = document.getElementById('invoiceItemsTableBody');
-        tbody.querySelectorAll('tr').forEach(row => {
-            const name = row.querySelector('.item-name-input')?.value.trim();
-            if (name) {
-                items.push({
-                    item_name: name,
-                    description: row.querySelector('.item-desc-input')?.value.trim() || '',
-                    quantity: parseFloat(row.querySelector('.item-qty-input')?.value) || 1,
-                    unit_price: parseFloat(row.querySelector('.item-price-input')?.value) || 0,
-                    discount: parseFloat(row.querySelector('.item-disc-input')?.value) || 0,
-                    tax_rate: parseFloat(row.querySelector('.item-tax-input')?.value) || 15,
-                });
-            }
-        });
-
-        if (items.length === 0) {
-            this.showToast(this.t('toast_item_required'), 'error');
+        if (!this.users.length) {
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center" style="padding:24px; color:var(--text-muted);">No admin users registered.</td></tr>`;
             return;
         }
 
-        const payload = {
-            action: 'save_invoice',
-            id: id,
-            invoice_number: invoiceNumber,
-            client_id: clientId,
-            issue_date: issueDate,
-            due_date: dueDate,
-            status: status,
-            payment_method: paymentMethod,
-            notes: notes,
-            items: items
-        };
+        tbody.innerHTML = this.users.map(u => {
+            const isSuper = (u.role === 'superadmin');
+            const roleBadge = isSuper
+                ? `<span class="badge" style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; font-weight:700;">★ SUPERADMIN</span>`
+                : `<span class="badge" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-weight:600;">ADMIN</span>`;
+
+            return `
+                <tr>
+                    <td><strong>#${u.id}</strong></td>
+                    <td>
+                        <strong style="color:var(--primary); font-size:14px;">${this.escapeHtml(u.username)}</strong>
+                        ${u.username === 'ibraheem01' ? '<span style="font-size:10px; background:#fef2f2; color:#dc2626; padding:2px 5px; border-radius:4px; margin-left:4px; font-weight:700;">DEFAULT ROOT</span>' : ''}
+                    </td>
+                    <td>${this.escapeHtml(u.full_name)}</td>
+                    <td>${roleBadge}</td>
+                    <td>${this.escapeHtml(u.email || '—')}</td>
+                    <td>${u.created_at ? u.created_at.substring(0, 10) : '—'}</td>
+                    <td style="text-align:right;">
+                        <button class="btn btn-outline btn-xs" onclick="App.openEditUserModal(${u.id})" title="Edit Admin User" style="margin-right:4px;">
+                            ✏️ Edit
+                        </button>
+                        <button class="btn btn-outline btn-xs" onclick="App.openUserPasswordModal(${u.id}, '${this.escapeHtml(u.username)}')" title="Change Password" style="margin-right:4px;">
+                            🔑 Password
+                        </button>
+                        ${u.id != 1 ? `
+                            <button class="btn btn-outline btn-xs" onclick="App.deleteUser(${u.id}, '${this.escapeHtml(u.username)}')" title="Delete User" style="color:#dc2626; border-color:#fca5a5;">
+                                🗑️ Delete
+                            </button>
+                        ` : ''}
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    },
+
+    openNewUserModal() {
+        document.getElementById('userModalTitle').innerText = 'Add New Admin User';
+        document.getElementById('userIdInput').value = '';
+        document.getElementById('userUsernameInput').value = '';
+        document.getElementById('userUsernameInput').disabled = false;
+        document.getElementById('userFullNameInput').value = '';
+        document.getElementById('userRoleSelect').value = 'admin';
+        document.getElementById('userEmailInput').value = '';
+        document.getElementById('userPasswordInput').value = '';
+        document.getElementById('userPasswordInput').required = true;
+        document.getElementById('userPasswordLabel').innerText = 'Password *';
+        document.getElementById('userPasswordHint').innerText = 'Minimum 6 characters.';
+        this.openModal('userModal');
+    },
+
+    openEditUserModal(id) {
+        const user = this.users.find(u => u.id == id);
+        if (!user) return;
+
+        document.getElementById('userModalTitle').innerText = `Edit Admin User: ${user.username}`;
+        document.getElementById('userIdInput').value = user.id;
+        document.getElementById('userUsernameInput').value = user.username;
+        document.getElementById('userUsernameInput').disabled = false;
+        document.getElementById('userFullNameInput').value = user.full_name;
+        document.getElementById('userRoleSelect').value = user.role;
+        document.getElementById('userEmailInput').value = user.email || '';
+        document.getElementById('userPasswordInput').value = '';
+        document.getElementById('userPasswordInput').required = false;
+        document.getElementById('userPasswordLabel').innerText = 'New Password (Optional)';
+        document.getElementById('userPasswordHint').innerText = 'Leave empty to keep existing password.';
+        this.openModal('userModal');
+    },
+
+    openUserPasswordModal(id, username) {
+        this.openEditUserModal(id);
+        const passInput = document.getElementById('userPasswordInput');
+        if (passInput) {
+            passInput.focus();
+        }
+    },
+
+    async saveUser(e) {
+        if (e) e.preventDefault();
+        const id = document.getElementById('userIdInput').value;
+        const username = document.getElementById('userUsernameInput').value.trim();
+        const fullName = document.getElementById('userFullNameInput').value.trim();
+        const role = document.getElementById('userRoleSelect').value;
+        const email = document.getElementById('userEmailInput').value.trim();
+        const password = document.getElementById('userPasswordInput').value.trim();
+
+        if (!username || !fullName) {
+            alert('Username and Full Name are required.');
+            return;
+        }
+
+        if (!id && !password) {
+            alert('Password is required for new admin users.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('action', 'save_user');
+        formData.append('id', id);
+        formData.append('username', username);
+        formData.append('full_name', fullName);
+        formData.append('role', role);
+        formData.append('email', email);
+        if (password) {
+            formData.append('password', password);
+        }
 
         try {
             const res = await fetch('api.php', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: formData
             });
-            const result = await res.json();
-            if (result.success) {
-                this.showToast(this.t('toast_invoice_saved'));
-                this.closeModal('invoiceModal');
-                this.loadInvoices();
-                this.loadDashboard();
+            const data = await res.json();
+            if (data.success) {
+                this.showToast(data.message || 'Admin user saved successfully');
+                this.closeModal('userModal');
+                this.loadUsers();
+
+                // If updated current username in session, update topbar display
+                const topbarUser = document.getElementById('topbarUsername');
+                if (topbarUser && (!id || id == 1)) {
+                    topbarUser.textContent = username;
+                }
             } else {
-                this.showToast(result.message || 'Save error', 'error');
+                alert('Error: ' + data.message);
             }
         } catch (err) {
-            this.showToast('Connection error', 'error');
+            alert('Failed to save user. Check server logs.');
         }
     },
 
-    async deleteInvoice(id) {
-        if (!confirm(this.t('confirm_delete_invoice'))) return;
+    async deleteUser(id, username) {
+        if (!confirm(`Are you sure you want to delete admin user "${username}"? This cannot be undone.`)) {
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('action', 'delete_user');
+        formData.append('id', id);
+
         try {
             const res = await fetch('api.php', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'delete_invoice', id: id })
+                body: formData
             });
-            const result = await res.json();
-            if (result.success) {
-                this.showToast(this.t('toast_invoice_deleted'));
-                this.loadInvoices();
-                this.loadDashboard();
+            const data = await res.json();
+            if (data.success) {
+                this.showToast(`Admin user "${username}" deleted successfully`);
+                this.loadUsers();
+            } else {
+                alert('Error: ' + data.message);
             }
         } catch (err) {
-            this.showToast('Failed to delete invoice', 'error');
+            alert('Failed to delete user.');
         }
     },
 
-    // ==========================================
-    // Quick View Modal & WhatsApp Share
-    // ==========================================
-    async viewInvoice(id) {
-        try {
-            const res = await fetch(`api.php?action=get_invoice&id=${id}`);
-            const result = await res.json();
-            if (result.success) {
-                const inv = result.data;
-                const container = document.getElementById('viewInvoiceModalContent');
-                
-                // WhatsApp share message text
-                const greeting = (this.lang === 'ar' ? 'مرحباً' : 'Hello');
-                const invoiceMsg = (this.lang === 'ar' ? 'نرفق لكم تفاصيل الفاتورة رقم' : 'Here are the details for invoice #');
-                const totalMsg = (this.lang === 'ar' ? 'المبلغ الإجمالي' : 'Total Amount');
-                const statusMsg = (this.lang === 'ar' ? 'الحالة' : 'Status');
-                const thanksMsg = (this.lang === 'ar' ? 'شكراً لتعاملكم معنا.' : 'Thank you for your business.');
-
-                const waText = encodeURIComponent(
-                    `${greeting} ${inv.client_name || this.t('cash_client')},\n` +
-                    `${invoiceMsg}: ${inv.invoice_number}\n` +
-                    `${totalMsg}: ${this.formatMoney(inv.grand_total)} ${this.currency}\n` +
-                    `${statusMsg}: ${this.getStatusLabel(inv.status)}\n` +
-                    `${thanksMsg}`
-                );
-
-                container.innerHTML = `
-                    <div style="border-bottom: 2px solid var(--primary-border); padding-bottom: 16px; margin-bottom: 20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-                        <div>
-                            <h2 style="color:var(--primary-dark); font-size:20px; font-weight:800;">${this.t('invoice_word')} #${this.escapeHtml(inv.invoice_number)}</h2>
-                            <p style="color:var(--text-muted); font-size:12.5px;">${this.t('th_issue_date')}: ${inv.issue_date} ${inv.due_date ? `| ${this.t('th_due_date')}: ${inv.due_date}` : ''}</p>
-                        </div>
-                        <div>
-                            ${this.renderStatusBadge(inv.status)}
-                        </div>
-                    </div>
-
-                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:16px; margin-bottom:20px; background:var(--bg-muted); padding:16px; border-radius:8px;">
-                        <div>
-                            <span style="font-size:12px; color:var(--text-muted);">${this.t('th_client')}:</span>
-                            <div style="font-weight:700;">${this.escapeHtml(inv.client_name || this.t('cash_client'))}</div>
-                            <div style="font-size:12px;">${this.escapeHtml(inv.client_phone || '')}</div>
-                        </div>
-                        <div>
-                            <span style="font-size:12px; color:var(--text-muted);">${this.t('lbl_payment_method')}:</span>
-                            <div style="font-weight:700;">${this.getPaymentMethodLabel(inv.payment_method)}</div>
-                        </div>
-                        <div>
-                            <span style="font-size:12px; color:var(--text-muted);">${this.t('th_total')}:</span>
-                            <div style="font-size:18px; font-weight:800; color:var(--primary);">${this.formatMoney(inv.grand_total)} ${this.currency}</div>
-                        </div>
-                    </div>
-
-                    <div class="table-container" style="margin-bottom:20px;">
-                        <table class="data-table" style="min-width:100%;">
-                            <thead>
-                                <tr>
-                                    <th>${this.t('th_item_name')}</th>
-                                    <th style="text-align:center;">${this.t('th_quantity')}</th>
-                                    <th>${this.t('th_unit_price')}</th>
-                                    <th>${this.t('th_discount')}</th>
-                                    <th>${this.t('th_total')}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${(inv.items || []).map(it => `
-                                    <tr>
-                                        <td>
-                                            <strong>${this.escapeHtml(it.item_name)}</strong>
-                                            ${it.description ? `<div style="font-size:11.5px; color:var(--text-muted);">${this.escapeHtml(it.description)}</div>` : ''}
-                                        </td>
-                                        <td style="text-align:center;">${it.quantity}</td>
-                                        <td>${this.formatMoney(it.unit_price)} ${this.currency}</td>
-                                        <td>${this.formatMoney(it.discount)} ${this.currency}</td>
-                                        <td><strong>${this.formatMoney(it.total)} ${this.currency}</strong></td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; border-top:1px solid var(--border); padding-top:16px;">
-                        <div style="display:flex; gap:8px;">
-                            <a href="print.php?id=${inv.id}&lang=${this.lang}" target="_blank" class="btn btn-primary">
-                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
-                                ${this.t('btn_print_official')}
-                            </a>
-                            <a href="https://api.whatsapp.com/send?text=${waText}${inv.client_phone ? `&phone=${encodeURIComponent(inv.client_phone.replace(/[^0-9]/g, ''))}` : ''}" target="_blank" class="btn btn-outline" style="color:#059669; border-color:#059669;">
-                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.669-.699c.969.529 1.834.814 2.791.814 3.179 0 5.767-2.587 5.768-5.766 0-3.18-2.587-5.768-5.768-5.768zm0 10.375c-.868 0-1.688-.242-2.392-.682l-.171-.107-1.776.466.474-1.73-.112-.178c-.482-.767-.736-1.558-.735-2.378 0-2.534 2.062-4.596 4.601-4.596 2.536 0 4.598 2.062 4.598 4.596 0 2.535-2.062 4.597-4.601 4.597z"/></svg>
-                                ${this.t('btn_whatsapp')}
-                            </a>
-                        </div>
-                        <button class="btn btn-outline" onclick="App.closeModal('viewInvoiceModal')">${this.t('btn_close')}</button>
-                    </div>
-                `;
-
-                this.openModal('viewInvoiceModal');
-            }
-        } catch (err) {
-            this.showToast('Failed to view invoice', 'error');
-        }
+    openChangeMyPasswordModal() {
+        document.getElementById('changeMyPasswordForm').reset();
+        this.openModal('changeMyPasswordModal');
     },
 
-    // Quick Status Change Popup
-    showQuickStatusMenu(event, id, currentStatus) {
-        event.stopPropagation();
-        const promptMsg = (this.lang === 'ar' 
-            ? 'تغيير حالة الفاتورة:\nاكتب أحد الخيارات: (paid / unpaid / pending / cancelled)' 
-            : 'Change invoice status:\nType one: (paid / unpaid / pending / cancelled)');
-        const newStatus = prompt(promptMsg, currentStatus);
-        if (newStatus && ['paid', 'unpaid', 'pending', 'cancelled'].includes(newStatus.toLowerCase())) {
-            this.updateInvoiceStatus(id, newStatus.toLowerCase());
-        }
-    },
+    async submitChangeMyPassword(e) {
+        if (e) e.preventDefault();
+        const currentPassword = document.getElementById('myCurrentPasswordInput').value;
+        const newPassword = document.getElementById('myNewPasswordInput').value;
+        const confirmPassword = document.getElementById('myConfirmPasswordInput').value;
 
-    async updateInvoiceStatus(id, status) {
+        if (newPassword !== confirmPassword) {
+            alert('New password and Confirm password do not match.');
+            return;
+        }
+
+        if (newPassword.length < 6) {
+            alert('Password must be at least 6 characters long.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('action', 'change_my_password');
+        formData.append('current_password', currentPassword);
+        formData.append('new_password', newPassword);
+
         try {
             const res = await fetch('api.php', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'update_invoice_status', id: id, status: status })
+                body: formData
             });
-            const result = await res.json();
-            if (result.success) {
-                this.showToast(this.t('toast_status_updated'));
-                this.loadInvoices();
-                this.loadDashboard();
+            const data = await res.json();
+            if (data.success) {
+                this.showToast('Your password has been changed successfully!');
+                this.closeModal('changeMyPasswordModal');
+            } else {
+                alert('Error: ' + data.message);
             }
         } catch (err) {
-            this.showToast('Failed to update status', 'error');
+            alert('Failed to update password.');
         }
     },
 
-    // Export Invoices to CSV (with UTF-8 BOM for Arabic support)
     exportInvoicesToCSV() {
         if (!this.invoices || this.invoices.length === 0) {
             this.showToast(this.t('no_records'), 'error');
             return;
         }
 
-        let csv = '\uFEFF'; // UTF-8 BOM
-        const header = (this.lang === 'ar' 
-            ? 'رقم الفاتورة,العميل,الهاتف,تاريخ الإصدار,تاريخ الاستحقاق,المجموع الفرعي,الخصم,الضريبة,المجموع الكلي,الحالة\n' 
-            : 'Invoice Number,Client,Phone,Issue Date,Due Date,Subtotal,Discount,Tax,Grand Total,Status\n');
-        csv += header;
+        const headers = ['Invoice #', 'Client Name', 'Contact Person', 'Issue Date', 'Total Cost', 'Paid Amount', 'Remaining Balance', 'Payment Plan', 'Assigned Partner', 'Status'];
+        const rows = this.invoices.map(i => [
+            `"${i.invoice_number}"`,
+            `"${i.client_name || ''}"`,
+            `"${i.contact_person || ''}"`,
+            `"${i.issue_date}"`,
+            `"${i.grand_total}"`,
+            `"${i.paid_amount || 0}"`,
+            `"${i.remaining_balance || 0}"`,
+            `"${i.installment_months > 1 ? i.installment_months + ' Months' : 'Full Payment'}"`,
+            `"${i.partner_assigned || 'both'}"`,
+            `"${i.status}"`
+        ]);
 
-        this.invoices.forEach(i => {
-            const row = [
-                `"${i.invoice_number}"`,
-                `"${i.client_name || this.t('cash_client')}"`,
-                `"${i.client_phone || ''}"`,
-                `"${i.issue_date}"`,
-                `"${i.due_date || ''}"`,
-                i.subtotal,
-                i.discount,
-                i.tax_amount,
-                i.grand_total,
-                `"${this.getStatusLabel(i.status)}"`
-            ];
-            csv += row.join(',') + '\n';
-        });
-
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const csvContent = "\uFEFF" + [headers.join(','), ...rows.map(e => e.join(','))].join("\n");
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        const filenamePrefix = (this.lang === 'ar' ? 'سجل_الفواتير' : 'Invoices_Record');
-        a.download = `${filenamePrefix}_${new Date().toISOString().split('T')[0]}.csv`;
-        a.click();
-        URL.revokeObjectURL(url);
-    },
-
-    // Helper functions
-    formatMoney(val) {
-        return parseFloat(val || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    },
-
-    escapeHtml(str) {
-        if (!str) return '';
-        const div = document.createElement('div');
-        div.innerText = str;
-        return div.innerHTML;
-    },
-
-    renderStatusBadge(status) {
-        const labels = {
-            paid: { text: this.t('status_paid'), class: 'badge-paid' },
-            unpaid: { text: this.t('status_unpaid'), class: 'badge-unpaid' },
-            pending: { text: this.t('status_pending'), class: 'badge-pending' },
-            cancelled: { text: this.t('status_cancelled'), class: 'badge-cancelled' },
-        };
-        const st = labels[status] || { text: status, class: '' };
-        return `<span class="badge ${st.class}">${st.text}</span>`;
-    },
-
-    getStatusLabel(status) {
-        return this.t(`status_${status}`) || status;
-    },
-
-    getPaymentMethodLabel(method) {
-        return this.t(`method_${method === 'bank_transfer' ? 'bank' : method}`) || method;
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `yaramay_invoices_${new Date().toISOString().slice(0, 10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     }
 };
 
-// Initialize on DOM Ready
 document.addEventListener('DOMContentLoaded', () => {
     App.init();
 });

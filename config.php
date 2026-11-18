@@ -1,19 +1,30 @@
 <?php
 /**
- * نظام تسجيل وإدارة الفواتير باللغة العربية
- * Arabic Invoice Record System
+ * YARAMAY Computer Maintenance Services - Invoice Record System
  * Configuration & SQLite Auto-Setup
  */
 
-// Enable error logging while keeping API clean
+// Error handling
 error_reporting(E_ALL);
 ini_set('display_errors', '0');
 
 define('DATA_DIR', __DIR__ . DIRECTORY_SEPARATOR . 'data');
+define('SESSION_DIR', DATA_DIR . DIRECTORY_SEPARATOR . 'sessions');
 define('DB_FILE', DATA_DIR . DIRECTORY_SEPARATOR . 'invoices.db');
 
 if (!file_exists(DATA_DIR)) {
     @mkdir(DATA_DIR, 0777, true);
+}
+if (!file_exists(SESSION_DIR)) {
+    @mkdir(SESSION_DIR, 0777, true);
+}
+
+if (is_dir(SESSION_DIR)) {
+    @session_save_path(SESSION_DIR);
+}
+
+if (session_status() === PHP_SESSION_NONE) {
+    @session_start();
 }
 
 function getDatabaseConnection(): PDO {
@@ -24,7 +35,6 @@ function getDatabaseConnection(): PDO {
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         ]);
-        // Enable foreign key support in SQLite
         $pdo->exec('PRAGMA foreign_keys = ON;');
     }
     return $pdo;
@@ -43,6 +53,7 @@ function initDatabaseSchema(): void {
         "CREATE TABLE IF NOT EXISTS clients (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
+            contact_person TEXT,
             phone TEXT,
             email TEXT,
             address TEXT,
@@ -54,7 +65,7 @@ function initDatabaseSchema(): void {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
             price REAL DEFAULT 0,
-            tax_rate REAL DEFAULT 15,
+            tax_rate REAL DEFAULT 0,
             description TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );",
@@ -65,13 +76,25 @@ function initDatabaseSchema(): void {
             client_id INTEGER,
             issue_date DATE NOT NULL,
             due_date DATE,
-            status TEXT DEFAULT 'unpaid', -- paid, unpaid, pending, cancelled
-            payment_method TEXT DEFAULT 'bank_transfer', -- cash, bank_transfer, card, cheque
+            status TEXT DEFAULT 'unpaid', -- paid, partial, unpaid, pending, cancelled
+            payment_method TEXT DEFAULT 'gcash', -- gcash, cash, stc_pay, bank_transfer, card, cheque
+            payment_term TEXT DEFAULT 'full', -- full, 3_months, 6_months, custom
+            installment_months INTEGER DEFAULT 1,
+            monthly_payment REAL DEFAULT 0,
+            partner_assigned TEXT DEFAULT 'both', -- ibraheem, fawas, both
+            ibraheem_share REAL DEFAULT 0,
+            fawas_share REAL DEFAULT 0,
             subtotal REAL DEFAULT 0,
             discount REAL DEFAULT 0,
             tax_amount REAL DEFAULT 0,
             grand_total REAL DEFAULT 0,
+            paid_amount REAL DEFAULT 0,
+            remaining_balance REAL DEFAULT 0,
+            price_note TEXT,
+            amount_due_note TEXT,
+            package_includes TEXT,
             notes TEXT,
+            submitted_by TEXT DEFAULT 'admin', -- admin, client
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE SET NULL
         );",
@@ -84,9 +107,20 @@ function initDatabaseSchema(): void {
             quantity REAL DEFAULT 1,
             unit_price REAL DEFAULT 0,
             discount REAL DEFAULT 0,
-            tax_rate REAL DEFAULT 15,
+            tax_rate REAL DEFAULT 0,
             total REAL DEFAULT 0,
             FOREIGN KEY (invoice_id) REFERENCES invoices (id) ON DELETE CASCADE
+        );",
+
+        "CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            full_name TEXT NOT NULL,
+            role TEXT DEFAULT 'admin', -- superadmin, admin
+            email TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );"
     ];
 
@@ -94,19 +128,43 @@ function initDatabaseSchema(): void {
         $db->exec($q);
     }
 
-    // Default Settings
+    // Ensure columns exist if migrated from older version
+    ensureColumnExists($db, 'clients', 'contact_person', 'TEXT');
+    ensureColumnExists($db, 'invoices', 'paid_amount', 'REAL DEFAULT 0');
+    ensureColumnExists($db, 'invoices', 'remaining_balance', 'REAL DEFAULT 0');
+    ensureColumnExists($db, 'invoices', 'payment_term', "TEXT DEFAULT 'full'");
+    ensureColumnExists($db, 'invoices', 'installment_months', "INTEGER DEFAULT 1");
+    ensureColumnExists($db, 'invoices', 'monthly_payment', "REAL DEFAULT 0");
+    ensureColumnExists($db, 'invoices', 'partner_assigned', "TEXT DEFAULT 'both'");
+    ensureColumnExists($db, 'invoices', 'ibraheem_share', "REAL DEFAULT 0");
+    ensureColumnExists($db, 'invoices', 'fawas_share', "REAL DEFAULT 0");
+    ensureColumnExists($db, 'invoices', 'price_note', 'TEXT');
+    ensureColumnExists($db, 'invoices', 'amount_due_note', 'TEXT');
+    ensureColumnExists($db, 'invoices', 'package_includes', 'TEXT');
+    ensureColumnExists($db, 'invoices', 'submitted_by', "TEXT DEFAULT 'admin'");
+
+    // Default Settings for YARAMAY Computer Maintenance Services
     $defaultSettings = [
-        'company_name'     => 'مؤسسة الواحة للحلول التجارية',
-        'company_cr'       => '1010789456',
-        'company_vat'      => '310123456700003',
-        'company_phone'    => '+966 54 321 0987',
-        'company_email'    => 'billing@alwaha-solutions.com',
-        'company_address'  => 'طريق الملك فهد، حي الصحافة، الرياض، المملكة العربية السعودية',
-        'company_logo'     => '',
-        'currency'         => 'ر.س',
-        'default_tax_rate' => '15',
-        'invoice_prefix'   => 'INV-',
-        'invoice_footer'   => 'شكراً لتعاملكم معنا. تسري هذه الفاتورة كإشعار رسمي للدفع وفق الشروط المتفق عليها.'
+        'company_name'       => 'YARAMAY Computer Maintenance Services',
+        'company_cr'         => 'Cambridge C5 -1G',
+        'company_vat'        => 'VAT-PH-09617190588',
+        'company_phone'      => '+639075251376 (SMS) / +966508624264',
+        'company_email'      => 'billing@yaramay.online',
+        'company_address'    => '#19 Street Brgy. San Andres Cainta Rizal Cambridge C5 -1G',
+        'company_manager'    => 'Ferdenand (Ibraheem) Sabado',
+        'company_title'      => 'General Manager',
+        'company_cert'       => 'MCP, MCSE, MCSA and CISCO Certified',
+        'company_website'    => 'www.yaramay.online',
+        'company_gcash'      => '09617190588',
+        'gcash_account_name' => 'Ferdenand Sabado',
+        'partner_1_name'     => 'Mr. Ibraheem',
+        'partner_2_name'     => 'Mr. Fawas',
+        'company_stc'        => 'STC Pay / GCash',
+        'currency'           => 'PHP',
+        'currency_symbol'    => '₱',
+        'default_tax_rate'   => '0',
+        'invoice_prefix'     => 'INV-',
+        'invoice_footer'     => "We are open for your suggestions on improving our services with you.\nPayment can be transferred through STC Pay or GCash (Account Name: Ferdenand Sabado, GCash #: 09617190588).\nThanking you for doing Business with us!"
     ];
 
     $checkStmt = $db->prepare("SELECT COUNT(*) as count FROM settings WHERE key = ?");
@@ -119,43 +177,94 @@ function initDatabaseSchema(): void {
         }
     }
 
-    // Seed sample data if empty
-    $clientCount = $db->query("SELECT COUNT(*) FROM clients")->fetchColumn();
-    if ($clientCount == 0) {
-        $db->exec("INSERT INTO clients (name, phone, email, address, tax_number) VALUES
-            ('شركة الأفق الرقمية المحدودة', '+966 50 111 2233', 'info@alofoq-tech.sa', 'شارع التحلية، الرياض', '300987654300003'),
-            ('مؤسسة البناء الحديث للمقاولات', '+966 55 444 7788', 'contact@modernbuild.sa', 'حي الزهراء، جدة', '311223344500003'),
-            ('مركز الرواد للاستشارات والتدريب', '+966 53 888 9900', 'finance@alrowad.edu.sa', 'حي العليا، الخبر', '302334455600003')
-        ");
+    // Check if partner shares need calculation on existing invoices
+    $db->exec("
+        UPDATE invoices SET 
+            partner_assigned = 'both',
+            ibraheem_share = ROUND(paid_amount / 2, 2),
+            fawas_share = ROUND(paid_amount / 2, 2)
+        WHERE (partner_assigned = 'both' OR partner_assigned IS NULL OR partner_assigned = '') 
+          AND id != 3 
+          AND (ibraheem_share = 0 OR ibraheem_share IS NULL);
+    ");
+    $db->exec("
+        UPDATE invoices SET 
+            partner_assigned = 'ibraheem',
+            ibraheem_share = paid_amount,
+            fawas_share = 0
+        WHERE id = 3;
+    ");
 
-        $db->exec("INSERT INTO products (name, price, tax_rate, description) VALUES
-            ('تصميم وبرمجة موقع إلكتروني', 3500.00, 15, 'تصميم واجهة مستخدم متجاوبة مع لوحة تحكم'),
-            ('استضافة سحابية سنوية (VPS)', 1200.00, 15, 'خادم افتراضي 4 أنوية، 8 جيجابايت رام'),
-            ('خدمات دعم فني وصيانة شهرية', 800.00, 15, 'صيانة دورية وتحديثات أمان وحفظ نسخ احتياطية'),
-            ('حملة تسويق وإعلانات رقمية', 2200.00, 15, 'إدارة حملات جوجل ومنصات التواصل الاجتماعي')
-        ");
+    // Check installment fields on existing invoices
+    $db->exec("
+        UPDATE invoices SET 
+            payment_term = 'full',
+            installment_months = 1,
+            monthly_payment = grand_total
+        WHERE payment_term IS NULL OR payment_term = ''
+    ");
+    $db->exec("
+        UPDATE invoices SET 
+            payment_term = 'custom',
+            installment_months = 12,
+            monthly_payment = 7500.00
+        WHERE id = 1
+    ");
 
-        // Insert sample invoices
-        $db->exec("INSERT INTO invoices (invoice_number, client_id, issue_date, due_date, status, payment_method, subtotal, discount, tax_amount, grand_total, notes) VALUES
-            ('INV-2026-0001', 1, date('now', '-5 days'), date('now', '+10 days'), 'paid', 'bank_transfer', 4700.00, 200.00, 675.00, 5175.00, 'تم استلام المبلغ عبر التحويل البنكي لحساب مصرف الراجحي.'),
-            ('INV-2026-0002', 2, date('now', '-2 days'), date('now', '+12 days'), 'pending', 'card', 2200.00, 0.00, 330.00, 2530.00, 'بانتظار تأكيد السداد بواسطة بطاقة مدى.'),
-            ('INV-2026-0003', 3, date('now'), date('now', '+15 days'), 'unpaid', 'cash', 800.00, 50.00, 112.50, 862.50, 'الرجاء سداد المبلغ نقداً عند الاستلام.')
+    // Seed default superadmin ibraheem01 if no users exist
+    $userCount = (int)$db->query("SELECT COUNT(*) FROM users")->fetchColumn();
+    if ($userCount === 0) {
+        $hashed = password_hash('123456789', PASSWORD_DEFAULT);
+        $insertUser = $db->prepare("
+            INSERT INTO users (username, password, full_name, role, email)
+            VALUES (?, ?, ?, ?, ?)
         ");
+        $insertUser->execute([
+            'ibraheem01',
+            $hashed,
+            'Mr. Ibraheem (Superadmin)',
+            'superadmin',
+            'ibraheem@yaramay.online'
+        ]);
+    }
+}
 
-        // Insert sample invoice items
-        $db->exec("INSERT INTO invoice_items (invoice_id, item_name, description, quantity, unit_price, discount, tax_rate, total) VALUES
-            (1, 'تصميم وبرمجة موقع إلكتروني', 'واجهة عربية متطورة وسريعة متجاوبة مع الهواتف', 1, 3500.00, 200.00, 15, 3795.00),
-            (1, 'استضافة سحابية سنوية (VPS)', 'باقة الأعمال 8 جيجابايت', 1, 1200.00, 0, 15, 1380.00),
-            (2, 'حملة تسويق وإعلانات رقمية', 'خطة تسويق شاملة لمدة شهر', 1, 2200.00, 0, 15, 2530.00),
-            (3, 'خدمات دعم فني وصيانة شهرية', 'صيانة شهر نوفمبر 2026', 1, 800.00, 50.00, 15, 862.50)
-        ");
+function ensureColumnExists(PDO $db, string $table, string $column, string $definition): void {
+    try {
+        $stmt = $db->query("PRAGMA table_info($table)");
+        $cols = $stmt->fetchAll(PDO::FETCH_COLUMN, 1);
+        if (!in_array($column, $cols)) {
+            $db->exec("ALTER TABLE $table ADD COLUMN $column $definition;");
+        }
+    } catch (Exception $e) {
+        // Table or column check error
     }
 }
 
 // Auto initialize
 initDatabaseSchema();
 
-function jsonSuccess($data = [], $message = 'تمت العملية بنجاح') {
+// Authentication Helpers
+function isLoggedIn(): bool {
+    return !empty($_SESSION['admin_user']) && !empty($_SESSION['admin_user']['id']);
+}
+
+function getCurrentUser(): ?array {
+    return $_SESSION['admin_user'] ?? null;
+}
+
+function requireAuth(): void {
+    if (!isLoggedIn()) {
+        header('Location: login.php');
+        exit;
+    }
+}
+
+function isSuperAdmin(): bool {
+    return isset($_SESSION['admin_user']['role']) && $_SESSION['admin_user']['role'] === 'superadmin';
+}
+
+function jsonSuccess($data = [], $message = 'Success') {
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode([
         'success' => true,
@@ -165,7 +274,7 @@ function jsonSuccess($data = [], $message = 'تمت العملية بنجاح') 
     exit;
 }
 
-function jsonError($message = 'حدث خطأ أثناء معالجة الطلب', $code = 400) {
+function jsonError($message = 'An error occurred while processing request', $code = 400) {
     http_response_code($code);
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode([
