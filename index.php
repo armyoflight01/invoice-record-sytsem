@@ -23,6 +23,9 @@ $currentUser = getCurrentUser();
     
     <!-- Custom Theme Stylesheet -->
     <link rel="stylesheet" href="assets/css/style.css">
+    
+    <!-- Authentic YARAMAY Favicon -->
+    <link rel="icon" type="image/png" href="assets/images/favicon.png">
 </head>
 <body>
 
@@ -34,19 +37,14 @@ $currentUser = getCurrentUser();
     <!-- App Sidebar -->
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <div class="brand-wrapper">
-                <!-- Red & Blue YARAMAY Emblem -->
-                <div class="brand-logo-icon">
-                    <svg width="28" height="28" viewBox="0 0 100 80" fill="none">
-                        <path d="M12 75 L38 12 L50 40 L35 75 Z" fill="#1e3a8a"/>
-                        <path d="M88 75 L62 12 L50 40 L65 75 Z" fill="#1e3a8a"/>
-                        <path d="M50 40 L38 12 L62 12 Z" fill="#dc2626"/>
-                        <polygon points="50,22 42,12 58,12" fill="#ef4444"/>
-                    </svg>
+            <div class="brand-wrapper" style="display:flex; align-items:center; gap:12px;">
+                <!-- Authentic YARAMAY Corporate Logo -->
+                <div class="brand-logo-card" style="background:#ffffff; padding:4px 6px; border-radius:8px; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,0.18);">
+                    <img src="assets/images/yaramay-logo.png" alt="YARAMAY Logo" style="height:36px; width:auto; object-fit:contain; display:block;">
                 </div>
                 <div>
-                    <div class="brand-title" data-i18n="brand_title">YARAMAY</div>
-                    <div class="brand-subtitle" id="sidebarBrandName" data-i18n="brand_subtitle">Computer Maintenance Services</div>
+                    <div class="brand-title" data-i18n="brand_title" style="letter-spacing:1px; font-weight:800;">YARAMAY</div>
+                    <div class="brand-subtitle" id="sidebarBrandName" data-i18n="brand_subtitle" style="font-size:10.5px; opacity:0.85; line-height:1.2;">Computer Maintenance</div>
                 </div>
             </div>
             <button class="sidebar-close-btn" id="closeSidebarBtn" title="Close Menu">
@@ -712,6 +710,17 @@ Hosting and domain, with SSL security
                         </div>
                     </div>
                     <div class="card-body">
+                        <!-- Official Brand Identity Card -->
+                        <div style="display:flex; align-items:center; gap:16px; margin-bottom:20px; padding:14px 18px; background:#f8fafc; border:1px solid var(--border); border-radius:8px;">
+                            <div style="background:#ffffff; padding:6px 12px; border-radius:8px; border:1px solid #e2e8f0; box-shadow:0 1px 4px rgba(0,0,0,0.06);">
+                                <img src="assets/images/yaramay-logo.png" alt="YARAMAY Official Corporate Logo" style="height:56px; width:auto; display:block;">
+                            </div>
+                            <div>
+                                <div style="font-weight:700; font-size:14px; color:var(--text-heading);">Official Corporate Logo & Brand Identity</div>
+                                <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">Applied system-wide across Admin Dashboard, Client Invoice Portal, and PDF/Printable Official Invoices.</div>
+                            </div>
+                        </div>
+
                         <form id="settingsForm">
                             <div class="form-grid">
                                 <div class="form-group">
@@ -1102,6 +1111,20 @@ Hosting and domain, with SSL security
                         <label data-i18n="lbl_amount_due_note">Amount Due Note</label>
                         <input type="text" id="invoiceAmountDueNote" class="form-control" placeholder="e.g. 7,500 PHP or Monthly Installment">
                     </div>
+                </div>
+
+                <!-- Quick Load Service Package Preset -->
+                <div style="background:#f0f9ff; border:1px solid #bae6fd; border-radius:8px; padding:10px 14px; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="font-size:12.5px; font-weight:700; color:#0369a1;">⚡ Quick Load Official Service Package & Pricing Preset:</span>
+                    </div>
+                    <select id="adminPackagePreset" onchange="App.applyAdminPackagePreset(this.value)" style="padding:6px 12px; font-size:12.5px; font-weight:700; border-radius:6px; border:1.5px solid #0284c7; background:#ffffff; color:#0369a1; cursor:pointer;">
+                        <option value="">-- Select Package Preset from Official Contracts --</option>
+                        <option value="pkg_jobconnection">The Jobconnection: E-Commerce & Web Maintenance (QMS) — ₱7,500.00 / mo</option>
+                        <option value="pkg_brilliant">Brilliant Minds: Full Annual Enterprise Contract — ₱90,000.00 / yr</option>
+                        <option value="pkg_joseline">Joseline Manpower: Hardware & E-mail Server Maintenance — ₱5,500.00 / mo</option>
+                        <option value="pkg_simsoh">Simsoh Agency: Web and System (Online) Maintenance — ₱5,000.00 / mo</option>
+                    </select>
                 </div>
 
                 <!-- Invoice Line Items Table -->

@@ -27,6 +27,7 @@ $gcashName = $settings['gcash_account_name'] ?? 'Ferdenand Sabado';
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="icon" type="image/png" href="assets/images/favicon.png">
 
     <style>
         body {
@@ -379,16 +380,13 @@ $gcashName = $settings['gcash_account_name'] ?? 'Ferdenand Sabado';
 <!-- Top Navigation -->
 <header class="portal-navbar">
     <div class="portal-navbar-inner">
-        <a href="portal.php" class="portal-brand">
-            <svg width="40" height="32" viewBox="0 0 100 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 75 L38 12 L50 40 L35 75 Z" fill="#ffffff" opacity="0.95"/>
-                <path d="M88 75 L62 12 L50 40 L65 75 Z" fill="#ffffff" opacity="0.95"/>
-                <path d="M50 40 L38 12 L62 12 Z" fill="#dc2626"/>
-                <polygon points="50,22 42,12 58,12" fill="#ef4444"/>
-            </svg>
+        <a href="portal.php" class="portal-brand" style="display:flex; align-items:center; gap:12px; text-decoration:none;">
+            <div style="background:#ffffff; padding:4px 8px; border-radius:8px; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,0.15);">
+                <img src="assets/images/yaramay-logo.png" alt="YARAMAY Logo" style="height:40px; width:auto; display:block;">
+            </div>
             <div>
-                <h1>Y A R A M A Y</h1>
-                <span>Client Invoice & Payment Request Portal</span>
+                <h1 style="margin:0; font-size:18px; font-weight:800; letter-spacing:1px; color:#ffffff;">Y A R A M A Y</h1>
+                <span style="font-size:11px; color:#bfdbfe; font-weight:500;">Client Invoice & Payment Request Portal</span>
             </div>
         </a>
 
@@ -462,14 +460,29 @@ $gcashName = $settings['gcash_account_name'] ?? 'Ferdenand Sabado';
                 2. Service Package & Pricing
             </div>
 
+            <!-- Package & Pricing Option Dropdown from Official PDF Contracts -->
+            <div class="form-field" style="margin-bottom: 16px;">
+                <label style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px;">
+                    <span style="font-size:13px; font-weight:700; color:#0f172a;">Select Service Package & Pricing Option *</span>
+                    <span style="font-size:11.5px; font-weight:600; color:#1e3a8a;">(Auto-fills service scope, pricing & inclusions from official contract)</span>
+                </label>
+                <select id="packagePresetSelect" onchange="onPackagePresetChange(this.value)" style="font-weight:700; color:#1e3a8a; background:#f0f9ff; border:1.5px solid #0284c7; padding:11px 14px; border-radius:8px; cursor:pointer; font-size:13.5px; width:100%;">
+                    <option value="pkg_jobconnection">📦 Package 1: The Jobconnection — E-Commerce & Web Maintenance (QMS) [₱7,500.00 / month]</option>
+                    <option value="pkg_brilliant">🏢 Package 2: Brilliant Minds Inc. — Full Annual Contract [₱90,000.00 / year or ₱7,500 / mo]</option>
+                    <option value="pkg_joseline">🖥️ Package 3: Joseline Manpower — Hardware & E-mail Server Maintenance [₱5,500.00 / month]</option>
+                    <option value="pkg_simsoh">🌐 Package 4: Simsoh Agency — Web and System (Online) Maintenance [₱5,000.00 / month]</option>
+                    <option value="custom">✏️ Custom Package / Custom Pricing</option>
+                </select>
+            </div>
+
             <div class="form-row-grid">
                 <div class="form-field">
                     <label>Service Package Name *</label>
-                    <input type="text" name="service_name" id="cServiceName" value="Package of E-Commerce Maintenance Services and Web maintenance including Rescue System" required>
+                    <input type="text" name="service_name" id="cServiceName" value="Package of E-Commerce Maintenance Services and Web maintenance including Rescue System (QMS)" required>
                 </div>
                 <div class="form-field">
                     <label>Overall Total Price (PHP) *</label>
-                    <input type="number" step="0.01" min="1" name="price" id="cPrice" value="20000.00" oninput="calculateLiveFormula()" required>
+                    <input type="number" step="0.01" min="1" name="price" id="cPrice" value="7500.00" oninput="calculateLiveFormula()" required>
                 </div>
             </div>
 
@@ -517,7 +530,7 @@ $gcashName = $settings['gcash_account_name'] ?? 'Ferdenand Sabado';
             <div class="form-row-grid">
                 <div class="form-field">
                     <label>Payment Channel *</label>
-                    <select name="payment_method" id="cPaymentMethod" style="font-weight: 600;">
+                    <select name="payment_method" id="cPaymentMethod" style="font-weight: 600;" onchange="togglePaymentChannel(this.value)">
                         <option value="gcash">GCash (Ferdenand Sabado - 09617190588)</option>
                         <option value="cash">Cash Payment</option>
                     </select>
@@ -531,6 +544,78 @@ $gcashName = $settings['gcash_account_name'] ?? 'Ferdenand Sabado';
                         <option value="fawas">Mr. Fawas (100% Share)</option>
                     </select>
                 </div>
+            </div>
+
+            <!-- GCash Payment & Screenshot Upload Container -->
+            <div id="gcashPaymentBox" style="background:#f0fdf4; border:1.5px solid #86efac; border-radius:10px; padding:18px; margin-bottom:20px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span style="background:#007dfc; color:#ffffff; font-weight:800; font-size:12px; padding:3px 10px; border-radius:6px; letter-spacing:0.5px;">GCASH PAYMENT</span>
+                        <strong style="color:#0f172a; font-size:14px;">Official Account Details</strong>
+                    </div>
+                    <div style="font-size:12.5px; color:#15803d; font-weight:700;">
+                        Amount to Pay: <span id="gcashPayAmount" style="font-size:15px; color:#0f172a; font-weight:800;">PHP 6,666.67</span>
+                    </div>
+                </div>
+
+                <div style="background:#ffffff; border:1px solid #bbf7d0; border-radius:8px; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:12px;">
+                    <div>
+                        <div style="font-size:11px; color:#64748b; text-transform:uppercase; font-weight:700;">Account Name</div>
+                        <div style="font-size:15px; font-weight:800; color:#0f172a;"><?= htmlspecialchars($gcashName) ?></div>
+                    </div>
+                    <div>
+                        <div style="font-size:11px; color:#64748b; text-transform:uppercase; font-weight:700;">GCash Number</div>
+                        <div style="font-size:16px; font-weight:800; color:#007dfc; font-family:monospace;"><?= htmlspecialchars($companyGcash) ?></div>
+                    </div>
+                    <button type="button" onclick="copyGcashNumber()" class="btn btn-sm btn-outline" style="border-color:#007dfc; color:#007dfc; padding:6px 14px; border-radius:6px; font-weight:700; cursor:pointer;" id="copyBtn">
+                        📋 Copy Number
+                    </button>
+                </div>
+
+                <!-- Payment Instructions -->
+                <div style="font-size:12px; color:#334155; line-height:1.6; margin-bottom:14px; background:rgba(255,255,255,0.7); padding:10px 14px; border-radius:6px;">
+                    <strong>Instructions:</strong> Open your GCash App &rarr; Send Money to <strong><?= htmlspecialchars($companyGcash) ?></strong> (<?= htmlspecialchars($gcashName) ?>) &rarr; Take a screenshot of the payment receipt &rarr; Upload it below to submit directly to Admin.
+                </div>
+
+                <!-- Screenshot Upload Field -->
+                <div>
+                    <label style="display:block; font-size:13px; font-weight:700; color:#0f172a; margin-bottom:6px;">
+                        Upload GCash Payment Screenshot / Receipt *
+                    </label>
+                    
+                    <div id="uploadDropzone" style="border:2px dashed #86efac; background:#ffffff; border-radius:8px; padding:20px; text-align:center; cursor:pointer; transition:border-color 0.2s;" onclick="document.getElementById('cPaymentReceipt').click()">
+                        <input type="file" name="payment_receipt" id="cPaymentReceipt" accept="image/png, image/jpeg, image/jpg, image/webp, application/pdf" style="display:none;" onchange="handleReceiptSelect(event)">
+                        
+                        <div id="uploadPrompt">
+                            <svg width="36" height="36" fill="none" stroke="#16a34a" viewBox="0 0 24 24" style="margin:0 auto 8px auto; display:block;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            <span style="font-size:13px; font-weight:700; color:#15803d; display:block;">Click to Upload or Drag & Drop GCash Screenshot here</span>
+                            <span style="font-size:11.5px; color:#64748b; display:block; margin-top:2px;">PNG, JPG, JPEG, WEBP or PDF (Max 8MB)</span>
+                        </div>
+
+                        <!-- Live Preview -->
+                        <div id="receiptPreviewContainer" style="display:none; align-items:center; justify-content:center; gap:16px; flex-wrap:wrap;">
+                            <img id="receiptPreviewImg" src="" alt="Receipt Preview" style="max-height:120px; max-width:180px; object-fit:contain; border-radius:6px; border:1px solid #cbd5e1; box-shadow:0 2px 6px rgba(0,0,0,0.1);">
+                            <div style="text-align:left;">
+                                <div id="receiptFileName" style="font-weight:700; font-size:13px; color:#0f172a;"></div>
+                                <div id="receiptFileSize" style="font-size:11px; color:#64748b; margin-top:2px;"></div>
+                                <button type="button" onclick="removeReceipt(event)" style="margin-top:6px; background:#fee2e2; color:#dc2626; border:none; padding:4px 10px; border-radius:4px; font-size:11px; font-weight:700; cursor:pointer;">
+                                    ✕ Remove & Choose Another
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cash Payment Note Container (Hidden by default) -->
+            <div id="cashPaymentBox" style="display:none; background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:10px; padding:16px; margin-bottom:20px;">
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+                    <span style="background:#475569; color:#ffffff; font-weight:800; font-size:12px; padding:3px 10px; border-radius:6px;">CASH PAYMENT</span>
+                    <strong style="color:#0f172a; font-size:14px;">Direct Cash Settlement</strong>
+                </div>
+                <p style="font-size:12.5px; color:#475569; line-height:1.5; margin:0;">
+                    Your cash payment will be collected and recorded by your assigned Account Officer. You will receive an official printed receipt upon turnover.
+                </p>
             </div>
 
             <div class="form-field" style="margin-bottom: 16px;">
@@ -578,13 +663,17 @@ $gcashName = $settings['gcash_account_name'] ?? 'Ferdenand Sabado';
                 <span style="font-size:13px; color:#64748b;">Monthly Payment:</span>
                 <strong style="font-size:14px; color:#15803d;" id="resMonthly">PHP 0.00 / month</strong>
             </div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:6px;" id="resReceiptRow">
+                <span style="font-size:13px; color:#64748b;">GCash Screenshot:</span>
+                <strong style="font-size:13px; color:#16a34a;" id="resReceiptStatus">✅ Uploaded & Sent to Admin</strong>
+            </div>
             <div style="display:flex; justify-content:space-between; border-top:1px dashed #cbd5e1; padding-top:8px; margin-top:8px;">
                 <span style="font-size:12px; color:#64748b;">GCash Recipient:</span>
                 <strong style="font-size:12.5px; color:#dc2626;">Ferdenand Sabado (09617190588)</strong>
             </div>
         </div>
 
-        <div style="display:flex; gap:10px; justify-content:center;">
+        <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
             <a href="#" id="viewPrintBtn" target="_blank" class="btn-submit-portal" style="font-size:14px; padding:10px 20px; text-decoration:none;">
                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
                 View & Print Invoice
@@ -604,6 +693,109 @@ $gcashName = $settings['gcash_account_name'] ?? 'Ferdenand Sabado';
 </footer>
 
 <script>
+function togglePaymentChannel(method) {
+    const gcashBox = document.getElementById('gcashPaymentBox');
+    const cashBox = document.getElementById('cashPaymentBox');
+    if (method === 'gcash') {
+        if (gcashBox) gcashBox.style.display = 'block';
+        if (cashBox) cashBox.style.display = 'none';
+    } else {
+        if (gcashBox) gcashBox.style.display = 'none';
+        if (cashBox) cashBox.style.display = 'block';
+    }
+}
+
+function copyGcashNumber() {
+    const num = '<?= htmlspecialchars($companyGcash) ?>';
+    navigator.clipboard.writeText(num).then(() => {
+        const btn = document.getElementById('copyBtn');
+        btn.textContent = '✅ Copied!';
+        setTimeout(() => { btn.textContent = '📋 Copy Number'; }, 2000);
+    }).catch(() => {
+        prompt('Copy GCash Number:', num);
+    });
+}
+
+function handleReceiptSelect(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 8 * 1024 * 1024) {
+        alert('File size exceeds 8MB limit. Please select a smaller screenshot.');
+        e.target.value = '';
+        return;
+    }
+
+    const previewImg = document.getElementById('receiptPreviewImg');
+    const previewContainer = document.getElementById('receiptPreviewContainer');
+    const promptBox = document.getElementById('uploadPrompt');
+    const fileName = document.getElementById('receiptFileName');
+    const fileSize = document.getElementById('receiptFileSize');
+
+    fileName.textContent = file.name;
+    fileSize.textContent = (file.size / 1024).toFixed(1) + ' KB';
+
+    if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            previewImg.src = evt.target.result;
+            previewImg.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    } else {
+        previewImg.style.display = 'none';
+    }
+
+    promptBox.style.display = 'none';
+    previewContainer.style.display = 'flex';
+}
+
+function removeReceipt(e) {
+    if (e) e.stopPropagation();
+    const input = document.getElementById('cPaymentReceipt');
+    input.value = '';
+    document.getElementById('receiptPreviewImg').src = '';
+    document.getElementById('receiptPreviewContainer').style.display = 'none';
+    document.getElementById('uploadPrompt').style.display = 'block';
+}
+
+const OFFICIAL_PACKAGES = {
+    pkg_jobconnection: {
+        name: "Package of E-Commerce Maintenance Services and Web maintenance including Rescue System (QMS)",
+        price: 7500.00,
+        inclusions: `Includes: 1. Web design / Web system\n2. Job post / Job Offer\n3 Deployment System (QMS)\n4. Maintenance System\n5. Location Rescue system\n6. E-commerce site with SSL Security\n7. PRA Deployment\n8. FRA/SRA SYSTEM (IF NEEDED)\n9. Block Listing for OFW\n10. Voucher System\nHosting and domain, with SSL security\n--- Nothing Follows ---`
+    },
+    pkg_brilliant: {
+        name: "Package of E-Commerce Maintenance Services and Web maintenance including Rescue System (Annual Contract)",
+        price: 90000.00,
+        inclusions: `Includes: 1. Web design / Web system\n2. Job post / Job Offer\n3 Deployment System\n4. Company E-mail Server Maintenance\n5. Location Rescue system\n6. E-commerce site with SSL Security\n7. PRA Deployment\n8. FRA/SRA SYSTEM (IF NEEDED)\n9. Block Listing for OFW\n10. Voucher System\nHosting and domain, with SSL security\n--- Nothing Follows ---`
+    },
+    pkg_joseline: {
+        name: "Package of E-Commerce Maintenance Services and Web maintenance including Hardware & Email Server",
+        price: 5500.00,
+        inclusions: `Includes: 1. Web design / Web system\n2. Job post / Job Offer\n3. Technical Support (Hardware Maintenance)\n4. Company E-mail Server Maintenance\n5. Location Rescue system\n6. E-commerce site with SSL Security\n7. PRA Deployment\n8. FRA/SRA SYSTEM (IF NEEDED)\n9. Company Email Maintenance\n10. Voucher System\nHosting and domain, with SSL security\n--- Nothing Follows ---`
+    },
+    pkg_simsoh: {
+        name: "Web and System (Online) & Maintenance Services",
+        price: 5000.00,
+        inclusions: `Web and System (Online) & Maintenance Services for the Month\n--- Nothing Follows ---`
+    }
+};
+
+function onPackagePresetChange(pkgKey) {
+    if (pkgKey === 'custom') {
+        document.getElementById('cServiceName').focus();
+        return;
+    }
+    const pkg = OFFICIAL_PACKAGES[pkgKey];
+    if (!pkg) return;
+
+    document.getElementById('cServiceName').value = pkg.name;
+    document.getElementById('cPrice').value = pkg.price.toFixed(2);
+    document.getElementById('cServiceDesc').value = pkg.inclusions;
+    calculateLiveFormula();
+}
+
 function calculateLiveFormula() {
     const priceVal = parseFloat(document.getElementById('cPrice').value) || 0;
     const term = document.querySelector('input[name="payment_term"]:checked')?.value || 'full';
@@ -617,20 +809,39 @@ function calculateLiveFormula() {
     const formattedTotal = priceVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const formattedMonthly = monthly.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+    const gcashPayAmount = document.getElementById('gcashPayAmount');
+
     if (months > 1) {
         document.getElementById('displayMonthly').textContent = 'PHP ' + formattedMonthly + ' / month';
         document.getElementById('displayFormulaText').textContent = '₱' + formattedTotal + ' ÷ ' + months + ' Months = ₱' + formattedMonthly + ' / month';
+        if (gcashPayAmount) gcashPayAmount.textContent = 'PHP ' + formattedMonthly + ' (1st Month)';
     } else {
         document.getElementById('displayMonthly').textContent = 'PHP ' + formattedTotal + ' (Full)';
         document.getElementById('displayFormulaText').textContent = 'One-time Full Payment: ₱' + formattedTotal;
+        if (gcashPayAmount) gcashPayAmount.textContent = 'PHP ' + formattedTotal + ' (Full)';
     }
 }
 
 async function submitClientPortalForm(e) {
     e.preventDefault();
     const btn = document.getElementById('submitBtn');
+    const paymentMethod = document.getElementById('cPaymentMethod').value;
+    const receiptInput = document.getElementById('cPaymentReceipt');
+
+    // If GCash is selected and receipt isn't uploaded yet, give friendly confirmation
+    if (paymentMethod === 'gcash' && (!receiptInput.files || receiptInput.files.length === 0)) {
+        const proceedWithout = confirm(
+            "Notice: You have not uploaded your GCash payment screenshot yet.\n\n" +
+            "Would you like to proceed and submit anyway? You can also click 'Cancel' to pay via GCash (09617190588) and attach the receipt screenshot."
+        );
+        if (!proceedWithout) {
+            document.getElementById('uploadDropzone').scrollIntoView({ behavior: 'smooth' });
+            return;
+        }
+    }
+
     btn.disabled = true;
-    btn.innerHTML = 'Submitting Request...';
+    btn.innerHTML = 'Submitting Request & Uploading...';
 
     const form = document.getElementById('clientPortalForm');
     const formData = new FormData(form);
@@ -641,7 +852,15 @@ async function submitClientPortalForm(e) {
             method: 'POST',
             body: formData
         });
-        const data = await res.json();
+
+        const text = await res.text();
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (jsonErr) {
+            console.error('Non-JSON server response:', text);
+            throw new Error('Server returned unexpected output: ' + text.substring(0, 140));
+        }
 
         if (data.success) {
             const invoice = data.data;
@@ -655,13 +874,26 @@ async function submitClientPortalForm(e) {
                 document.getElementById('resMonthlyRow').style.display = 'none';
             }
 
+            const receiptStatus = document.getElementById('resReceiptStatus');
+            const receiptRow = document.getElementById('resReceiptRow');
+            if (invoice.payment_receipt) {
+                receiptRow.style.display = 'flex';
+                receiptStatus.textContent = '✅ Uploaded & Sent to Admin';
+                receiptStatus.style.color = '#16a34a';
+            } else {
+                receiptRow.style.display = 'flex';
+                receiptStatus.textContent = 'Pending Upload / Cash Turnover';
+                receiptStatus.style.color = '#d97706';
+            }
+
             document.getElementById('viewPrintBtn').href = 'print.php?id=' + invoice.invoice_id;
             document.getElementById('successModal').style.display = 'flex';
         } else {
-            alert('Error: ' + (data.message || 'Unable to submit request.'));
+            alert('Submission Notice: ' + (data.message || 'Unable to submit request.'));
         }
     } catch (err) {
-        alert('Communication error. Please check your network and try again.');
+        console.error('Submit error:', err);
+        alert('Notice: ' + (err.message || 'Communication error. Please check your network and try again.'));
     } finally {
         btn.disabled = false;
         btn.innerHTML = `<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span>Submit Invoice Request</span>`;
@@ -671,6 +903,7 @@ async function submitClientPortalForm(e) {
 function closeModalAndReset() {
     document.getElementById('successModal').style.display = 'none';
     document.getElementById('clientPortalForm').reset();
+    removeReceipt();
     calculateLiveFormula();
 }
 

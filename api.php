@@ -714,6 +714,31 @@ try {
             $today = date('Y-m-d');
             $dueDate = date('Y-m-d', strtotime('+15 days'));
 
+            // Handle GCash / Payment Screenshot Upload
+            $receiptPath = null;
+            if (isset($_FILES['payment_receipt']) && $_FILES['payment_receipt']['error'] !== UPLOAD_ERR_NO_FILE) {
+                $scan = UploadInspector::scanUploadedFile($_FILES['payment_receipt'], ['png', 'jpg', 'jpeg', 'webp', 'pdf'], 8388608); // Max 8MB
+                if (!$scan['valid']) {
+                    jsonError('Payment Screenshot Error: ' . $scan['error']);
+                }
+
+                $ext = strtolower(pathinfo($_FILES['payment_receipt']['name'], PATHINFO_EXTENSION));
+                $receiptDir = __DIR__ . '/uploads/receipts';
+                if (!is_dir($receiptDir)) {
+                    @mkdir($receiptDir, 0755, true);
+                }
+
+                $cleanFilename = 'gcash_receipt_' . date('Ymd_His') . '_' . bin2hex(random_bytes(6)) . '.' . $ext;
+                $destination = $receiptDir . '/' . $cleanFilename;
+
+                if (move_uploaded_file($_FILES['payment_receipt']['tmp_name'], $destination)) {
+                    $receiptPath = 'uploads/receipts/' . $cleanFilename;
+                    $clientNote .= "\n[GCash Payment Proof Attached: " . $cleanFilename . "]";
+                } else {
+                    jsonError('Failed to save payment receipt upload. Please try again.');
+                }
+            }
+
             $insertInv = $db->prepare("
                 INSERT INTO invoices (
                     invoice_number, client_id, issue_date, due_date, status, 
@@ -721,8 +746,8 @@ try {
                     partner_assigned, ibraheem_share, fawas_share,
                     subtotal, discount, tax_amount, grand_total,
                     paid_amount, remaining_balance, price_note, amount_due_note,
-                    notes, submitted_by
-                ) VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, 0, 0, ?, 0, 0, ?, 0, ?, ?, ?, ?, 'client')
+                    package_includes, notes, payment_receipt, submitted_by
+                ) VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, 0, 0, ?, 0, 0, ?, 0, ?, ?, ?, ?, ?, ?, 'client')
             ");
             $insertInv->execute([
                 $invoiceNumber,
@@ -739,7 +764,9 @@ try {
                 $price, // Remaining balance = full price initially
                 $formulaText,
                 ($installmentMonths > 1) ? "Monthly: PHP " . number_format($monthlyPayment, 2) : "PHP " . number_format($price, 2),
-                $clientNote
+                $serviceDesc,
+                $clientNote,
+                $receiptPath
             ]);
             $invoiceId = (int)$db->lastInsertId();
 
@@ -768,6 +795,7 @@ try {
                 'installment_months' => $installmentMonths,
                 'monthly_payment'    => $monthlyPayment,
                 'partner_assigned'   => $partnerAssigned,
+                'payment_receipt'    => $receiptPath,
                 'gcash_name'         => 'Ferdenand Sabado',
                 'gcash_number'       => '09617190588'
             ], 'Invoice request submitted successfully! Your invoice number is ' . $invoiceNumber);

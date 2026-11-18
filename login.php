@@ -82,6 +82,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="icon" type="image/png" href="assets/images/favicon.png">
 
     <style>
         body {
@@ -243,14 +244,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
 
 <div class="login-card">
     <div class="login-header">
-        <svg class="logo-svg" width="60" height="46" viewBox="0 0 100 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 75 L38 12 L50 40 L35 75 Z" fill="#ffffff" opacity="0.95"/>
-            <path d="M88 75 L62 12 L50 40 L65 75 Z" fill="#ffffff" opacity="0.95"/>
-            <path d="M50 40 L38 12 L62 12 Z" fill="#dc2626"/>
-            <polygon points="50,22 42,12 58,12" fill="#ef4444"/>
-        </svg>
-        <h1>Y A R A M A Y</h1>
-        <p>Computer Maintenance Services • Admin Portal</p>
+        <div style="background:#ffffff; border-radius:12px; padding:10px 16px; display:inline-flex; align-items:center; justify-content:center; margin-bottom:12px; box-shadow:0 4px 14px rgba(0,0,0,0.2);">
+            <img src="assets/images/yaramay-logo.png" alt="YARAMAY Computer Maintenance Services" style="height:62px; width:auto; display:block;">
+        </div>
+        <p style="font-size:12px; color:#bfdbfe; font-weight:600; margin:0; letter-spacing:0.5px;">Computer Maintenance Services • Admin Portal</p>
     </div>
 
     <div class="login-body">

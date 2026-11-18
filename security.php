@@ -88,17 +88,17 @@ class SecurityShield {
     
     // Dangerous patterns signature library
     private static array $attackSignatures = [
-        // SQL Injection signatures
+        // SQL Injection signatures (targets malicious SQL injection vectors without blocking legitimate business text)
         'SQL_INJECTION' => [
             '/\b(union\s+(all\s+)?select)\b/i',
-            '/\b(select\s+.+\s+from\s+.+)/i',
+            '/\b(select\s+[\w\*,\s]+\s+from\s+(?:users|invoices|clients|settings|information_schema|mysql\.|sys\.))/i',
             '/\b(insert\s+into\s+.+\s+values)/i',
             '/\b(drop\s+(table|database))\b/i',
             '/\b(alter\s+table)\b/i',
             '/\b(exec(\s|\+)+(s|x)p\w+)/i',
             '/\b(benchmark\s*\(|sleep\s*\(|waitfor\s+delay)\b/i',
-            '/\b(or\s+1\s*=\s*1|and\s+1\s*=\s*1)\b/i',
-            '/(--\s*$|#\s*$|\/\*.*\*\/)/m',
+            '/\b(or\s+1\s*=\s*1|and\s+1\s*=\s*1|or\s+[\'"]1[\'"]\s*=\s*[\'"]1[\'"])\b/i',
+            '/(?:[\'\"`]\s*(?:--|#|\/\*)|(?<!-)\/\*.*?\*\/)/',
             '/\b(information_schema|load_file|into\s+outfile)\b/i'
         ],
         // Cross-Site Scripting (XSS) signatures
@@ -112,10 +112,10 @@ class SecurityShield {
         ],
         // Remote Code Execution & Command Injection signatures
         'RCE_ATTACK' => [
-            '/\b(system|passthru|shell_exec|exec|popen|proc_open)\s*\(/i',
+            '/(?:<\?php\b|;\s*|\bphp\s+-r\s+[\'"]).*?\bsystem\s*\(/is',
+            '/\b(passthru|shell_exec|proc_open|popen)\s*\(/i',
             '/\b(eval|assert|base64_decode)\s*\(/i',
-            '/\b(cmd\.exe|powershell\.exe|\/bin\/sh|\/bin\/bash)\b/i',
-            '/`[^`]+`/' // backticks command execution
+            '/\b(cmd\.exe|powershell\.exe|\/bin\/sh|\/bin\/bash)\b/i'
         ],
         // Path / Directory Traversal signatures
         'PATH_TRAVERSAL' => [
@@ -179,6 +179,24 @@ class SecurityShield {
         logSecurityEvent('ATTACK_BLOCKED', $details);
 
         http_response_code(403);
+
+        // Check if request is an API / AJAX / JSON request
+        $isJson = (
+            (!empty($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) ||
+            (!empty($_SERVER['CONTENT_TYPE']) && strpos($_SERVER['CONTENT_TYPE'], 'application/json') !== false) ||
+            (!empty($_SERVER['SCRIPT_NAME']) && basename($_SERVER['SCRIPT_NAME']) === 'api.php') ||
+            (isset($_REQUEST['action']))
+        );
+
+        if ($isJson) {
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode([
+                'success' => false,
+                'message' => "Security check blocked request: {$attackType} pattern detected. Please avoid executable script tags or sql comment characters."
+            ]);
+            exit;
+        }
+
         header('Content-Type: text/html; charset=utf-8');
         echo "<!DOCTYPE html>
 <html lang='en'>
@@ -367,16 +385,27 @@ class UploadInspector {
             '/\beval\s*\(/i',
             '/\bbase64_decode\s*\(/i',
             '/\bpassthru\s*\(/i',
-            '/\bsystem\s*\(/i',
             '/\bshell_exec\s*\(/i',
-            '/GIF89a.*<\?/s', // image polyglot shell
-            '/\x00/'
+            '/GIF89a.*<\?/s' // image polyglot shell
         ];
+
+        // Null byte check applies to text/JSON files only, not binary images
+        if ($ext === 'json') {
+            $maliciousSignatures[] = '/\x00/';
+        }
 
         foreach ($maliciousSignatures as $sig) {
             if (preg_match($sig, $content)) {
                 logSecurityEvent('MALWARE_REJECTED', "Malicious code detected in uploaded file: {$file['name']}");
                 return ['valid' => false, 'error' => 'Security Threat Detected: File contains unauthorized code or executable scripts.'];
+            }
+        }
+
+        // Validate image files with getimagesize
+        if (in_array($ext, ['png', 'jpg', 'jpeg', 'webp', 'gif'])) {
+            $imgInfo = @getimagesize($file['tmp_name']);
+            if ($imgInfo === false) {
+                return ['valid' => false, 'error' => 'Uploaded file is not a valid image format.'];
             }
         }
 

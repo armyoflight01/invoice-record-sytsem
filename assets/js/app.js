@@ -949,6 +949,11 @@ const App = {
                 <td style="color:#15803d; font-weight:600;">
                     <div>${this.formatMoney(inv.paid_amount)} ${this.currency}</div>
                     <div style="font-size:11px; color:#64748b;">via ${inv.payment_method ? inv.payment_method.toUpperCase() : 'GCASH'}</div>
+                    ${inv.payment_receipt ? `
+                        <a href="${this.escapeHtml(inv.payment_receipt)}" target="_blank" style="display:inline-flex; align-items:center; gap:3px; background:#dcfce7; color:#15803d; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:700; text-decoration:none; margin-top:3px;" title="View Uploaded GCash Payment Screenshot">
+                            📎 GCash Proof
+                        </a>
+                    ` : ''}
                 </td>
                 <td>${this.renderBalanceBadge(inv.remaining_balance)}</td>
                 <td>${this.renderPartnerBadge(inv.partner_assigned, inv.ibraheem_share, inv.fawas_share)}</td>
@@ -1433,6 +1438,52 @@ const App = {
         this.openModal('invoiceModal');
     },
 
+    applyAdminPackagePreset(pkgKey) {
+        if (!pkgKey) return;
+        const packages = {
+            pkg_jobconnection: {
+                name: "Package of E-Commerce Maintenance Services and Web maintenance including Rescue System (QMS)",
+                price: 7500.00,
+                desc: "Includes: 1. Web design / Web system\n2. Job post / Job Offer\n3 Deployment System (QMS)\n4. Maintenance System\n5. Location Rescue system\n6. E-commerce site with SSL Security\n7. PRA Deployment\n8. FRA/SRA SYSTEM (IF NEEDED)\n9. Block Listing for OFW\n10. Voucher System\nHosting and domain, with SSL security\n--- Nothing Follows ---",
+                priceNote: "PHP 7,500.00 Per Month",
+                amountDue: "7,500 PHP"
+            },
+            pkg_brilliant: {
+                name: "Package of E-Commerce Maintenance Services and Web maintenance including Rescue System (Annual Contract)",
+                price: 90000.00,
+                desc: "Includes: 1. Web design / Web system\n2. Job post / Job Offer\n3 Deployment System\n4. Company E-mail Server Maintenance\n5. Location Rescue system\n6. E-commerce site with SSL Security\n7. PRA Deployment\n8. FRA/SRA SYSTEM (IF NEEDED)\n9. Block Listing for OFW\n10. Voucher System\nHosting and domain, with SSL security\n--- Nothing Follows ---",
+                priceNote: "PHP 90,000.00 Per Year Or PHP 7,500.00 Per Month",
+                amountDue: "15,000 php partial payment / 7,500 php monthly"
+            },
+            pkg_joseline: {
+                name: "Package of E-Commerce Maintenance Services and Web maintenance including Hardware & Email Server",
+                price: 5500.00,
+                desc: "Includes: 1. Web design / Web system\n2. Job post / Job Offer\n3. Technical Support (Hardware Maintenance)\n4. Company E-mail Server Maintenance\n5. Location Rescue system\n6. E-commerce site with SSL Security\n7. PRA Deployment\n8. FRA/SRA SYSTEM (IF NEEDED)\n9. Company Email Maintenance\n10. Voucher System\nHosting and domain, with SSL security\n--- Nothing Follows ---",
+                priceNote: "PHP 5,500.00 Maintenance",
+                amountDue: "5,500 PHP"
+            },
+            pkg_simsoh: {
+                name: "Web and System (Online) & Maintenance Services",
+                price: 5000.00,
+                desc: "Web and System (Online) & Maintenance Services for the Month\n--- Nothing Follows ---",
+                priceNote: "Php 5,000.00",
+                amountDue: "5,000 Php"
+            }
+        };
+
+        const pkg = packages[pkgKey];
+        if (!pkg) return;
+
+        const tbody = document.getElementById('invoiceItemsTableBody');
+        if (tbody) tbody.innerHTML = '';
+        this.addInvoiceItemRow(pkg.name, pkg.desc, 1, pkg.price, 0, 0);
+
+        if (pkg.priceNote) document.getElementById('invoicePriceNote').value = pkg.priceNote;
+        if (pkg.amountDue) document.getElementById('invoiceAmountDueNote').value = pkg.amountDue;
+
+        this.recalculateTotals();
+    },
+
     async editInvoice(id) {
         try {
             const res = await fetch(`api.php?action=get_invoice&id=${id}`);
@@ -1709,15 +1760,21 @@ const App = {
 
             container.innerHTML = `
                 <div style="border-bottom:1px solid var(--border); padding-bottom:16px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:flex-start;">
-                    <div>
-                        <h3 style="font-size:20px; font-weight:800; color:var(--primary); font-family:monospace;">${this.escapeHtml(inv.invoice_number)}</h3>
-                        <div style="font-size:14px; font-weight:700; color:#334155; margin-top:2px;">${this.escapeHtml(inv.client_name || this.t('cash_client'))}</div>
-                        ${inv.contact_person ? `<div style="font-size:12px; color:#64748b;">👤 ${this.escapeHtml(inv.contact_person)}</div>` : ''}
-                        ${inv.client_address ? `<div style="font-size:12px; color:#64748b;">📍 ${this.escapeHtml(inv.client_address)}</div>` : ''}
+                    <div style="display:flex; align-items:flex-start; gap:14px;">
+                        <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:4px 8px; box-shadow:0 1px 4px rgba(0,0,0,0.06); flex-shrink:0;">
+                            <img src="assets/images/yaramay-logo.png" alt="YARAMAY" style="height:44px; width:auto; display:block;">
+                        </div>
+                        <div>
+                            <h3 style="font-size:20px; font-weight:800; color:var(--primary); font-family:monospace; margin:0;">${this.escapeHtml(inv.invoice_number)}</h3>
+                            <div style="font-size:14px; font-weight:700; color:#334155; margin-top:2px;">${this.escapeHtml(inv.client_name || this.t('cash_client'))}</div>
+                            ${inv.contact_person ? `<div style="font-size:12px; color:#64748b;">👤 ${this.escapeHtml(inv.contact_person)}</div>` : ''}
+                            ${inv.client_address ? `<div style="font-size:12px; color:#64748b;">📍 ${this.escapeHtml(inv.client_address)}</div>` : ''}
+                        </div>
                     </div>
                     <div style="text-align:right;">
                         <div>${this.renderStatusBadge(inv.status)}</div>
                         <div style="font-size:12px; color:#64748b; margin-top:4px;">Date: ${inv.issue_date}</div>
+                        <div style="font-size:11px; color:#94a3b8;">Due: ${inv.due_date || 'N/A'}</div>
                     </div>
                 </div>
 
@@ -1773,6 +1830,26 @@ const App = {
                         `).join('')}
                     </tbody>
                 </table>
+
+                ${inv.payment_receipt ? `
+                    <div style="background:#f0fdf4; border:1.5px solid #86efac; padding:14px; border-radius:8px; margin-bottom:16px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <span style="background:#16a34a; color:#fff; font-size:11px; font-weight:800; padding:2px 8px; border-radius:4px;">GCASH PROOF</span>
+                                <strong style="font-size:13px; color:#14532d;">Uploaded Payment Screenshot / Receipt</strong>
+                            </div>
+                            <a href="${this.escapeHtml(inv.payment_receipt)}" target="_blank" class="btn btn-sm btn-outline" style="border-color:#16a34a; color:#16a34a; font-size:11px; text-decoration:none; padding:4px 10px;">
+                                🔍 Open Full Image ↗
+                            </a>
+                        </div>
+                        <div style="text-align:center; background:#ffffff; border:1px solid #bbf7d0; border-radius:6px; padding:10px;">
+                            <a href="${this.escapeHtml(inv.payment_receipt)}" target="_blank">
+                                <img src="${this.escapeHtml(inv.payment_receipt)}" alt="Payment Receipt" style="max-height:260px; max-width:100%; object-fit:contain; border-radius:4px; box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+                            </a>
+                            <div style="font-size:11px; color:#64748b; margin-top:6px;">Click screenshot to view in full resolution</div>
+                        </div>
+                    </div>
+                ` : ''}
 
                 ${inv.notes ? `
                     <div style="background:#fef2f2; border:1px solid #fecaca; padding:12px; border-radius:6px; font-size:12px; color:#991b1b; margin-bottom:16px;">

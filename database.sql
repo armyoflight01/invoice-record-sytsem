@@ -128,6 +128,7 @@ CREATE TABLE IF NOT EXISTS `invoices` (
   `amount_due_note` text DEFAULT NULL,
   `package_includes` text DEFAULT NULL,
   `notes` text DEFAULT NULL,
+  `payment_receipt` varchar(255) DEFAULT NULL,
   `submitted_by` varchar(50) NOT NULL DEFAULT 'admin',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),

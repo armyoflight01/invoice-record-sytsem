@@ -241,6 +241,7 @@ function initDatabaseSchema(): void {
     ensureColumnExists($db, 'invoices', 'amount_due_note', 'TEXT');
     ensureColumnExists($db, 'invoices', 'package_includes', 'TEXT');
     ensureColumnExists($db, 'invoices', 'submitted_by', "TEXT DEFAULT 'admin'");
+    ensureColumnExists($db, 'invoices', 'payment_receipt', "VARCHAR(255) DEFAULT NULL");
 
     // Default Settings for YARAMAY Computer Maintenance Services
     $defaultSettings = [
@@ -259,6 +260,7 @@ function initDatabaseSchema(): void {
         'partner_1_name'     => 'Mr. Ibraheem',
         'partner_2_name'     => 'Mr. Fawas',
         'company_stc'        => 'STC Pay / GCash',
+        'company_logo'       => 'assets/images/yaramay-logo.png',
         'currency'           => 'PHP',
         'currency_symbol'    => '₱',
         'default_tax_rate'   => '0',

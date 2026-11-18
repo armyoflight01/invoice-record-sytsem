@@ -99,6 +99,7 @@ $statusInfo = $statusLabels[$invoice['status']] ?? ['text' => strtoupper($invoic
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Cairo:wght@400;600;700;800&family=Alex+Brush&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="assets/images/favicon.png">
     
     <style>
         * {
@@ -176,6 +177,18 @@ $statusInfo = $statusLabels[$invoice['status']] ?? ['text' => strtoupper($invoic
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+            overflow: hidden;
+        }
+
+        .invoice-watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 440px;
+            opacity: 0.042;
+            pointer-events: none;
+            z-index: 0;
         }
 
         /* YARAMAY Centered Header */
@@ -509,23 +522,14 @@ $statusInfo = $statusLabels[$invoice['status']] ?? ['text' => strtoupper($invoic
 <!-- Main Printable A4 Invoice Container -->
 <div class="invoice-page">
 
+    <!-- Subtle Authentic Background Watermark -->
+    <img src="assets/images/yaramay-logo-transparent.png" class="invoice-watermark" alt="" aria-hidden="true">
+
     <div>
-        <!-- Top Centered Header with YARAMAY Emblem -->
+        <!-- Top Centered Header with Authentic YARAMAY Logo -->
         <header class="brand-header">
             <div class="logo-emblem">
-                <!-- Authentic Red & Blue YARAMAY "M" Logo -->
-                <svg width="68" height="52" viewBox="0 0 100 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <!-- Left Blue Wing -->
-                    <path d="M12 75 L38 12 L50 40 L35 75 Z" fill="#1e3a8a"/>
-                    <!-- Right Blue Wing -->
-                    <path d="M88 75 L62 12 L50 40 L65 75 Z" fill="#1e3a8a"/>
-                    <!-- Center Red Diamond/Peak -->
-                    <path d="M50 40 L38 12 L62 12 Z" fill="#dc2626"/>
-                    <!-- Inner Red Accent -->
-                    <polygon points="50,22 42,12 58,12" fill="#ef4444"/>
-                </svg>
-                <div class="logo-title">Y A R A M A Y</div>
-                <div class="logo-subtitle">Computer Maintenance Services</div>
+                <img src="assets/images/yaramay-logo.png" alt="YARAMAY Computer Maintenance Services" style="height:78px; width:auto; display:block; margin:0 auto 4px auto;">
             </div>
             <div class="brand-top-contact">
                 #19 Street Brgy. San Andres Cainta Rizal Cambridge C5 -1G: Contact # +639075251376 (SMS) +966508624264<br>
