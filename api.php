@@ -44,11 +44,15 @@ try {
                 jsonError('Please enter both username and password.');
             }
 
+            // Anti-Brute-Force Check
+            BruteForceProtector::checkLockout($username);
+
             $stmt = $db->prepare("SELECT * FROM users WHERE username = ?");
             $stmt->execute([$username]);
             $user = $stmt->fetch();
 
             if (!$user) {
+                BruteForceProtector::recordFailedAttempt($username);
                 jsonError('Invalid username or password.');
             }
 
@@ -62,8 +66,13 @@ try {
             }
 
             if (!$passwordValid) {
+                BruteForceProtector::recordFailedAttempt($username);
                 jsonError('Invalid username or password.');
             }
+
+            // Authentication succeeded: clear brute force counters & regenerate session ID
+            BruteForceProtector::clearAttempts($username);
+            session_regenerate_id(true);
 
             $_SESSION['admin_user'] = [
                 'id'        => (int)$user['id'],
@@ -72,6 +81,8 @@ try {
                 'role'      => $user['role'],
                 'email'     => $user['email']
             ];
+
+            logSecurityEvent('LOGIN_SUCCESS', 'Successful API login', $username);
 
             jsonSuccess([
                 'user' => $_SESSION['admin_user']
@@ -627,12 +638,15 @@ try {
         // 5. Client Self Fill-Up Form Submission
         // ==========================================
         case 'submit_client_invoice':
-            $clientName = trim($_POST['client_name'] ?? '');
-            $contactPerson = trim($_POST['contact_person'] ?? '');
-            $phone = trim($_POST['phone'] ?? '');
-            $email = trim($_POST['email'] ?? '');
-            $address = trim($_POST['address'] ?? '');
-            $serviceName = trim($_POST['service_name'] ?? 'E-Commerce & Web Maintenance Services');
+            // Anti-Spam / Rate-Limiting Protection (Max 10 submissions per 10 mins per IP)
+            RateLimiter::checkRate('submit_client_invoice', 10, 600);
+
+            $clientName = strip_tags(trim($_POST['client_name'] ?? ''));
+            $contactPerson = strip_tags(trim($_POST['contact_person'] ?? ''));
+            $phone = strip_tags(trim($_POST['phone'] ?? ''));
+            $email = filter_var(trim($_POST['email'] ?? ''), FILTER_SANITIZE_EMAIL);
+            $address = strip_tags(trim($_POST['address'] ?? ''));
+            $serviceName = strip_tags(trim($_POST['service_name'] ?? 'E-Commerce & Web Maintenance Services'));
             $serviceDesc = trim($_POST['service_description'] ?? '');
             $price = max(0, (float)($_POST['price'] ?? $_POST['total_amount'] ?? 7500.00));
             $paymentMethod = trim($_POST['payment_method'] ?? 'gcash');
@@ -1041,15 +1055,15 @@ try {
             exit;
 
         case 'import_backup':
-            if (!isset($_FILES['backup_file']) || $_FILES['backup_file']['error'] !== UPLOAD_ERR_OK) {
-                jsonError('Please upload a valid JSON backup file');
+            // Anti-Malware / Anti-Webshell Upload Inspection
+            $scanResult = UploadInspector::scanUploadedFile($_FILES['backup_file'] ?? [], ['json'], 5242880);
+            if (!$scanResult['valid']) {
+                jsonError($scanResult['error']);
             }
 
-            $content = file_get_contents($_FILES['backup_file']['tmp_name']);
-            $data = json_decode($content, true);
-
+            $data = json_decode($scanResult['content'], true);
             if (!$data || !isset($data['invoices']) || !isset($data['clients'])) {
-                jsonError('Invalid backup file structure');
+                jsonError('Invalid backup file structure: missing required database collections.');
             }
 
             $db->beginTransaction();
@@ -1151,6 +1165,39 @@ try {
 
             $db->commit();
             jsonSuccess(null, 'Backup data restored successfully');
+            break;
+
+        // ==========================================
+        // 13. Security Logs & Threat Intelligence
+        // ==========================================
+        case 'get_security_logs':
+            $logs = $db->query("
+                SELECT id, event_type, ip_address, username, details, user_agent, created_at 
+                FROM security_logs 
+                ORDER BY id DESC 
+                LIMIT 50
+            ")->fetchAll();
+
+            $stats = [
+                'total_attacks_blocked' => (int)$db->query("SELECT COUNT(*) FROM security_logs WHERE event_type = 'ATTACK_BLOCKED'")->fetchColumn(),
+                'total_failed_logins'   => (int)$db->query("SELECT COUNT(*) FROM security_logs WHERE event_type = 'LOGIN_FAILED'")->fetchColumn(),
+                'total_lockouts'        => (int)$db->query("SELECT COUNT(*) FROM security_logs WHERE event_type = 'BRUTE_FORCE_LOCKOUT'")->fetchColumn(),
+                'active_lockouts'       => (int)$db->query("SELECT COUNT(DISTINCT ip_address) FROM login_attempts WHERE attempt_time > datetime('now', '-15 minutes')")->fetchColumn()
+            ];
+
+            jsonSuccess([
+                'logs'  => $logs,
+                'stats' => $stats
+            ]);
+            break;
+
+        case 'clear_security_logs':
+            if (!isSuperAdmin()) {
+                jsonError('Only Superadmin can purge security audit logs.');
+            }
+            $db->exec("DELETE FROM security_logs;");
+            $db->exec("DELETE FROM login_attempts;");
+            jsonSuccess(null, 'Security logs cleared successfully.');
             break;
 
         default:

@@ -75,6 +75,11 @@ $currentUser = getCurrentUser();
                 <span data-i18n="nav_users">Admin Users</span>
             </a>
 
+            <a href="#" class="nav-link" data-view="security">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                <span data-i18n="nav_security">Security Shield & Logs</span>
+            </a>
+
             <a href="portal.php" target="_blank" class="nav-link">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
                 <span data-i18n="nav_client_portal">Client Invoice Portal ↗</span>
@@ -838,6 +843,134 @@ Hosting and domain, with SSL security
                                 </thead>
                                 <tbody id="usersTableBody">
                                     <!-- Populated by JavaScript App.loadUsers() -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==============================================
+                 VIEW 9: Security Shield & Threat Intelligence
+                 ============================================== -->
+            <section class="view-section" id="view-security">
+                <!-- Security KPIs -->
+                <div class="kpi-grid" style="margin-bottom:24px;">
+                    <div class="kpi-card" style="border-left: 4px solid #16a34a;">
+                        <div class="kpi-content">
+                            <h3 style="color:#16a34a;">Firewall Shield Status</h3>
+                            <div class="kpi-value" style="color:#16a34a; font-size:20px;">ACTIVE & PROTECTED</div>
+                            <span class="kpi-sub">WAF, Anti-Brute-Force & Anti-Virus</span>
+                        </div>
+                        <div class="kpi-icon" style="background:#dcfce7; color:#16a34a;">
+                            <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                        </div>
+                    </div>
+
+                    <div class="kpi-card total">
+                        <div class="kpi-content">
+                            <h3>Attacks Blocked</h3>
+                            <div class="kpi-value" id="kpiAttacksBlocked" style="color:#dc2626;">0</div>
+                            <span class="kpi-sub">SQLi, XSS, RCE & Directory Traversal</span>
+                        </div>
+                        <div class="kpi-icon" style="background:#fee2e2; color:#dc2626;">
+                            <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+                        </div>
+                    </div>
+
+                    <div class="kpi-card balance">
+                        <div class="kpi-content">
+                            <h3>Failed Logins Tracked</h3>
+                            <div class="kpi-value" id="kpiFailedLogins">0</div>
+                            <span class="kpi-sub">Monitored for brute-force threats</span>
+                        </div>
+                        <div class="kpi-icon">
+                            <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                        </div>
+                    </div>
+
+                    <div class="kpi-card paid">
+                        <div class="kpi-content">
+                            <h3>Lockouts Triggered</h3>
+                            <div class="kpi-value" id="kpiLockoutsTriggered">0</div>
+                            <span class="kpi-sub">IPs blocked after 5 failed attempts</span>
+                        </div>
+                        <div class="kpi-icon">
+                            <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Security Defenses Grid -->
+                <div class="card" style="margin-bottom:24px;">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                            <span>Active System Defenses & Security Configuration</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:16px;">
+                            <div style="background:#f8fafc; border:1px solid #cbd5e1; padding:14px; border-radius:8px; border-left:4px solid #16a34a;">
+                                <strong style="color:#0f172a; font-size:13.5px; display:block; margin-bottom:4px;">🛡️ Web Application Firewall (WAF)</strong>
+                                <span style="font-size:12px; color:#475569;">Scans every request for SQL injection, Cross-Site Scripting (XSS), Remote Code Execution (RCE), command injection, and null bytes.</span>
+                            </div>
+                            <div style="background:#f8fafc; border:1px solid #cbd5e1; padding:14px; border-radius:8px; border-left:4px solid #16a34a;">
+                                <strong style="color:#0f172a; font-size:13.5px; display:block; margin-bottom:4px;">🔒 Anti-Brute-Force & Lockout Shield</strong>
+                                <span style="font-size:12px; color:#475569;">Automatically blocks and temporarily locks any IP address or username after 5 failed login attempts for 15 minutes.</span>
+                            </div>
+                            <div style="background:#f8fafc; border:1px solid #cbd5e1; padding:14px; border-radius:8px; border-left:4px solid #16a34a;">
+                                <strong style="color:#0f172a; font-size:13.5px; display:block; margin-bottom:4px;">🦠 Anti-Malware Upload Scanner</strong>
+                                <span style="font-size:12px; color:#475569;">Inspects all uploaded backup files to detect and block web shells, PHP executable tags, eval scripts, and image polyglot attacks.</span>
+                            </div>
+                            <div style="background:#f8fafc; border:1px solid #cbd5e1; padding:14px; border-radius:8px; border-left:4px solid #16a34a;">
+                                <strong style="color:#0f172a; font-size:13.5px; display:block; margin-bottom:4px;">🚫 Database Direct-Access Blocker</strong>
+                                <span style="font-size:12px; color:#475569;">Apache/IIS rules prevent external users from directly browsing or downloading <code>invoices.db</code>, <code>.sql</code> dumps, or session files.</span>
+                            </div>
+                            <div style="background:#f8fafc; border:1px solid #cbd5e1; padding:14px; border-radius:8px; border-left:4px solid #16a34a;">
+                                <strong style="color:#0f172a; font-size:13.5px; display:block; margin-bottom:4px;">⚡ Anti-Spam & DoS Rate Limiter</strong>
+                                <span style="font-size:12px; color:#475569;">Restricts submission bursts to prevent automated bots and denial-of-service spam on public client invoice portals.</span>
+                            </div>
+                            <div style="background:#f8fafc; border:1px solid #cbd5e1; padding:14px; border-radius:8px; border-left:4px solid #16a34a;">
+                                <strong style="color:#0f172a; font-size:13.5px; display:block; margin-bottom:4px;">🔐 Security Headers (CSP & Anti-Clickjack)</strong>
+                                <span style="font-size:12px; color:#475569;">Enforces <code>X-Frame-Options</code>, <code>X-Content-Type-Options: nosniff</code>, <code>Referrer-Policy</code>, and <code>Content-Security-Policy</code>.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Security Incident & Audit Logs Table -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <span>Security Incident & Audit Logs (Real-Time)</span>
+                        </div>
+                        <div style="display:flex; gap:8px;">
+                            <button class="btn btn-outline btn-sm" onclick="App.loadSecurityLogs()">
+                                🔄 Refresh Logs
+                            </button>
+                            <button class="btn btn-outline btn-sm" onclick="App.clearSecurityLogs()" style="color:#dc2626; border-color:#fca5a5;">
+                                🗑️ Clear Logs
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table class="data-table" id="securityLogsTable">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Event Type</th>
+                                        <th>IP Address</th>
+                                        <th>Account</th>
+                                        <th>Incident Details</th>
+                                        <th>User Agent</th>
+                                        <th>Timestamp</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="securityLogsTableBody">
+                                    <!-- Populated by JavaScript App.loadSecurityLogs() -->
                                 </tbody>
                             </table>
                         </div>

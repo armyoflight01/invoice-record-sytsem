@@ -101,7 +101,39 @@ The database is pre-seeded with all verified clients and invoices from the offic
 
 ---
 
-### 6. 100% Bilingual English & Arabic Translation
+### 6. Advanced Security Shield, WAF & Threat Protection (`security.php`)
+The system includes enterprise-grade defensive security to prevent hacker attacks, malicious code execution, virus uploads, and automated bots:
+- **Real-Time Web Application Firewall (WAF)**:
+  - Continuously inspects `$_GET`, `$_POST`, `$_COOKIE`, and raw JSON request bodies.
+  - Intercepts and blocks **SQL Injection (SQLi)** (`UNION SELECT`, `SLEEP()`, `BENCHMARK()`, `' OR 1=1--`, etc.).
+  - Intercepts and blocks **Cross-Site Scripting (XSS)** (`<script>`, `javascript:`, event handlers).
+  - Intercepts and blocks **Remote Code Execution (RCE) & Command Injection** (`system()`, `eval()`, `passthru()`, `powershell`, `cmd.exe`, backticks).
+  - Intercepts and blocks **Directory Traversal** (`../`, `..\`, `%2e%2e`) and **Null Byte Injection**.
+  - Offending requests are blocked with **HTTP 403 Forbidden** and permanently logged with IP and payload.
+- **Anti-Brute-Force & IP Lockout Protection**:
+  - Automatically tracks failed login attempts.
+  - Locks out any IP or account after **5 failed attempts within 15 minutes** with **HTTP 429 Too Many Requests**.
+  - Clears counters upon successful authentication.
+- **Anti-Malware & Webshell File Upload Scanner**:
+  - Deep-scans all uploaded backup files (`.json`) for embedded PHP shells, `eval()`, `base64_decode()`, polyglot scripts, or executable code.
+  - Rejects malicious uploads before any server execution.
+- **Database & Directory Direct-Access Blocking**:
+  - Dedicated `.htaccess` and `web.config` rules deny direct HTTP downloading of `invoices.db`, `.sql` dumps, and session files.
+  - Directory indexing (`Options -Indexes`) is disabled.
+- **Cryptographic CSRF Shield**:
+  - High-entropy 64-character tokens (`hash_equals`) protect state-changing endpoints from Cross-Site Request Forgery.
+- **Strict Security HTTP Headers**:
+  - `X-Frame-Options: SAMEORIGIN` (Clickjacking defense)
+  - `X-Content-Type-Options: nosniff` (MIME-sniffing defense)
+  - `X-XSS-Protection: 1; mode=block`
+  - `Referrer-Policy: strict-origin-when-cross-origin`
+  - `Content-Security-Policy` (CSP restricting unauthorized scripts, styles, objects)
+- **Live Security Incident & Audit Log Dashboard (`Security Shield & Logs`)**:
+  - Admin can view real-time security events, blocked attacks, failed logins, and active lockouts directly in the dashboard.
+
+---
+
+### 7. 100% Bilingual English & Arabic Translation
 - **Default Language**: English (`en`).
 - **One-Click Switcher**: Toggle effortlessly between English (LTR) and Arabic (RTL) via the top bar button.
 - User preference is saved across sessions in `localStorage`.

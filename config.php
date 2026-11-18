@@ -121,12 +121,41 @@ function initDatabaseSchema(): void {
             email TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );",
+
+        "CREATE TABLE IF NOT EXISTS login_attempts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ip_address TEXT NOT NULL,
+            username TEXT,
+            attempt_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+            status TEXT DEFAULT 'failed'
+        );",
+
+        "CREATE TABLE IF NOT EXISTS security_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_type TEXT NOT NULL,
+            ip_address TEXT NOT NULL,
+            username TEXT,
+            details TEXT,
+            user_agent TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );",
+
+        "CREATE TABLE IF NOT EXISTS rate_limits (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ip_address TEXT NOT NULL,
+            endpoint TEXT NOT NULL,
+            request_time DATETIME DEFAULT CURRENT_TIMESTAMP
         );"
     ];
 
     foreach ($queries as $q) {
         $db->exec($q);
     }
+
+    $db->exec("CREATE INDEX IF NOT EXISTS idx_login_attempts_ip ON login_attempts(ip_address, attempt_time);");
+    $db->exec("CREATE INDEX IF NOT EXISTS idx_rate_limits_ip ON rate_limits(ip_address, endpoint, request_time);");
+    $db->exec("CREATE INDEX IF NOT EXISTS idx_security_logs_created ON security_logs(created_at);");
 
     // Ensure columns exist if migrated from older version
     ensureColumnExists($db, 'clients', 'contact_person', 'TEXT');
@@ -241,8 +270,11 @@ function ensureColumnExists(PDO $db, string $table, string $column, string $defi
     }
 }
 
-// Auto initialize
+// Auto initialize schema
 initDatabaseSchema();
+
+// Load Web Application Firewall & Advanced Security Shield
+require_once __DIR__ . '/security.php';
 
 // Authentication Helpers
 function isLoggedIn(): bool {

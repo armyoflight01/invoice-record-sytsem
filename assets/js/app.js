@@ -35,6 +35,7 @@ const App = {
             nav_invoices: 'Invoices Record',
             nav_clients: 'Clients Directory',
             nav_users: 'Admin Users',
+            nav_security: 'Security Shield & Logs',
             nav_client_portal: 'Client Invoice Portal',
             nav_products: 'Products & Services',
             nav_settings: 'Company Settings',
@@ -44,6 +45,7 @@ const App = {
             title_invoices: 'Invoices Record & Payment Management',
             title_clients: 'Clients Directory & Financial Statements',
             title_users: 'Admin Users & Access Control',
+            title_security: 'Security Shield & Threat Intelligence',
             title_client_portal: 'Client Invoice Request & Installment Plan',
             title_products: 'Products & Services Catalog',
             title_settings: 'Company & Invoicing Settings',
@@ -236,6 +238,7 @@ const App = {
             nav_invoices: 'سجل الفواتير',
             nav_clients: 'دليل العملاء',
             nav_users: 'مدراء النظام',
+            nav_security: 'درع الأمان وسجلات الحماية',
             nav_client_portal: 'بوابة طلب فاتورة بالأقساط',
             nav_products: 'المنتجات والخدمات',
             nav_settings: 'إعدادات المنشأة',
@@ -245,6 +248,7 @@ const App = {
             title_invoices: 'سجل الفواتير ومتابعة التحصيل',
             title_clients: 'دليل العملاء وكشوف الحسابات',
             title_users: 'إدارة المستخدمين وصلاحيات المدراء',
+            title_security: 'درع الحماية وسجلات التهديدات الأمنية',
             title_client_portal: 'نموذج تعبئة طلب فاتورة وخطة الدفع والأقساط',
             title_products: 'دليل الخدمات والأسعار',
             title_settings: 'إعدادات الشركة والفواتير',
@@ -697,6 +701,7 @@ const App = {
         if (viewName === 'clients') this.loadClients();
         if (viewName === 'products') this.loadProducts();
         if (viewName === 'users') this.loadUsers();
+        if (viewName === 'security') this.loadSecurityLogs();
         if (viewName === 'client_portal') this.updatePortalFormula();
     },
 
@@ -2182,6 +2187,93 @@ const App = {
             }
         } catch (err) {
             alert('Failed to update password.');
+        }
+    },
+
+    // ==========================================
+    // Security Shield & Incident Audit Methods
+    // ==========================================
+    async loadSecurityLogs() {
+        try {
+            const res = await fetch('api.php?action=get_security_logs');
+            const data = await res.json();
+            if (data.success) {
+                const logs = data.data.logs || [];
+                const stats = data.data.stats || {};
+
+                // Update KPI Cards
+                const attacksEl = document.getElementById('kpiAttacksBlocked');
+                const failedEl = document.getElementById('kpiFailedLogins');
+                const lockoutsEl = document.getElementById('kpiLockoutsTriggered');
+
+                if (attacksEl) attacksEl.textContent = stats.total_attacks_blocked || 0;
+                if (failedEl) failedEl.textContent = stats.total_failed_logins || 0;
+                if (lockoutsEl) lockoutsEl.textContent = stats.total_lockouts || 0;
+
+                this.renderSecurityLogs(logs);
+            } else {
+                this.showToast(data.message || 'Failed to load security logs', 'error');
+            }
+        } catch (err) {
+            console.error('Error loading security logs:', err);
+        }
+    },
+
+    renderSecurityLogs(logs) {
+        const tbody = document.getElementById('securityLogsTableBody');
+        if (!tbody) return;
+
+        if (!logs.length) {
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center" style="padding:24px; color:var(--text-muted);">No security incidents recorded. System is 100% secure.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = logs.map(l => {
+            let badgeStyle = 'background:#f1f5f9; color:#475569;';
+            if (l.event_type === 'ATTACK_BLOCKED') {
+                badgeStyle = 'background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; font-weight:700;';
+            } else if (l.event_type === 'LOGIN_FAILED') {
+                badgeStyle = 'background:#fef3c7; color:#b45309; border:1px solid #fcd34d; font-weight:700;';
+            } else if (l.event_type === 'LOGIN_SUCCESS') {
+                badgeStyle = 'background:#dcfce7; color:#15803d; border:1px solid #86efac; font-weight:700;';
+            } else if (l.event_type === 'BRUTE_FORCE_LOCKOUT') {
+                badgeStyle = 'background:#fce7f3; color:#be185d; border:1px solid #fbcfe8; font-weight:800;';
+            } else if (l.event_type === 'MALWARE_REJECTED') {
+                badgeStyle = 'background:#450a0a; color:#fca5a5; border:1px solid #dc2626; font-weight:800;';
+            }
+
+            return `
+                <tr>
+                    <td><strong>#${l.id}</strong></td>
+                    <td>
+                        <span class="badge" style="${badgeStyle}">${this.escapeHtml(l.event_type)}</span>
+                    </td>
+                    <td><code>${this.escapeHtml(l.ip_address)}</code></td>
+                    <td><strong>${this.escapeHtml(l.username || 'Anonymous')}</strong></td>
+                    <td style="max-width:320px; font-size:12px; word-break:break-word;">${this.escapeHtml(l.details || '—')}</td>
+                    <td style="max-width:200px; font-size:11px; color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${this.escapeHtml(l.user_agent || '')}">${this.escapeHtml(l.user_agent ? l.user_agent.substring(0, 45) + '...' : '—')}</td>
+                    <td style="font-size:12px; white-space:nowrap;">${l.created_at || '—'}</td>
+                </tr>
+            `;
+        }).join('');
+    },
+
+    async clearSecurityLogs() {
+        if (!confirm('Are you sure you want to clear all security and audit logs? This requires Superadmin privileges.')) {
+            return;
+        }
+
+        try {
+            const res = await fetch('api.php?action=clear_security_logs');
+            const data = await res.json();
+            if (data.success) {
+                this.showToast('Security audit logs cleared successfully.');
+                this.loadSecurityLogs();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        } catch (err) {
+            alert('Failed to clear logs.');
         }
     },
 

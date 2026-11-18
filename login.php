@@ -18,10 +18,17 @@ $username = '';
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     $username = trim($_POST['username'] ?? '');
     $password = trim($_POST['password'] ?? '');
+    $csrfToken = $_POST['csrf_token'] ?? '';
 
-    if (empty($username) || empty($password)) {
+    // 1. Verify CSRF Token
+    if (!CSRFShield::verify($csrfToken)) {
+        $error = 'Security session expired or invalid token. Please refresh and try again.';
+    } elseif (empty($username) || empty($password)) {
         $error = 'Please enter both username and password.';
     } else {
+        // 2. Check Brute-Force lockout
+        BruteForceProtector::checkLockout($username);
+
         $db = getDatabaseConnection();
         $stmt = $db->prepare("SELECT * FROM users WHERE username = ?");
         $stmt->execute([$username]);
@@ -38,6 +45,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             }
 
             if ($valid) {
+                // Successful login: clear any failed attempts and regenerate session ID
+                BruteForceProtector::clearAttempts($username);
+                session_regenerate_id(true);
+
                 $_SESSION['admin_user'] = [
                     'id'        => (int)$user['id'],
                     'username'  => $user['username'],
@@ -45,12 +56,16 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                     'role'      => $user['role'],
                     'email'     => $user['email']
                 ];
+
+                logSecurityEvent('LOGIN_SUCCESS', 'Successful authentication', $username);
                 header('Location: index.php');
                 exit;
             } else {
+                BruteForceProtector::recordFailedAttempt($username);
                 $error = 'Invalid password. Please try again.';
             }
         } else {
+            BruteForceProtector::recordFailedAttempt($username);
             $error = 'User not found with username "' . htmlspecialchars($username) . '".';
         }
     }
@@ -247,6 +262,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         <?php endif; ?>
 
         <form method="POST" action="login.php">
+            <input type="hidden" name="csrf_token" value="<?= CSRFShield::getToken() ?>">
             <div class="form-group">
                 <label for="username">Admin Username</label>
                 <input type="text" id="username" name="username" class="form-input" placeholder="e.g. ibraheem01" value="<?= htmlspecialchars($username) ?>" required autofocus>
