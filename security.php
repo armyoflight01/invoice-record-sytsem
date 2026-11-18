@@ -70,12 +70,13 @@ function logSecurityEvent(string $eventType, string $details, ?string $username 
         $db = getDatabaseConnection();
         $ip = getClientIP();
         $ua = substr($_SERVER['HTTP_USER_AGENT'] ?? 'Unknown', 0, 255);
+        $now = date('Y-m-d H:i:s');
 
         $stmt = $db->prepare("
             INSERT INTO security_logs (event_type, ip_address, username, details, user_agent, created_at)
-            VALUES (?, ?, ?, ?, ?, datetime('now'))
+            VALUES (?, ?, ?, ?, ?, ?)
         ");
-        $stmt->execute([$eventType, $ip, $username, $details, $ua]);
+        $stmt->execute([$eventType, $ip, $username, $details, $ua, $now]);
     } catch (Exception $e) {
         // Fallback to error_log if db is not ready
         error_log("[SECURITY EVENT] {$eventType} from IP " . getClientIP() . ": {$details}");
@@ -216,14 +217,15 @@ class BruteForceProtector {
 
         $db = getDatabaseConnection();
         $ip = getClientIP();
+        $cutoff = date('Y-m-d H:i:s', time() - self::LOCKOUT_SECONDS);
 
         $stmt = $db->prepare("
             SELECT COUNT(*) FROM login_attempts 
             WHERE (ip_address = ? OR username = ?) 
               AND status = 'failed' 
-              AND attempt_time > datetime('now', '-15 minutes')
+              AND attempt_time > ?
         ");
-        $stmt->execute([$ip, $username]);
+        $stmt->execute([$ip, $username, $cutoff]);
         $fails = (int)$stmt->fetchColumn();
 
         if ($fails >= self::MAX_ATTEMPTS) {
@@ -241,8 +243,9 @@ class BruteForceProtector {
     public static function recordFailedAttempt(string $username): void {
         $db = getDatabaseConnection();
         $ip = getClientIP();
-        $stmt = $db->prepare("INSERT INTO login_attempts (ip_address, username, attempt_time, status) VALUES (?, ?, datetime('now'), 'failed')");
-        $stmt->execute([$ip, $username]);
+        $now = date('Y-m-d H:i:s');
+        $stmt = $db->prepare("INSERT INTO login_attempts (ip_address, username, attempt_time, status) VALUES (?, ?, ?, 'failed')");
+        $stmt->execute([$ip, $username, $now]);
 
         logSecurityEvent('LOGIN_FAILED', "Failed login attempt for username '{$username}'", $username);
     }
@@ -262,16 +265,18 @@ class RateLimiter {
 
         $db = getDatabaseConnection();
         $ip = getClientIP();
+        $cutoff = date('Y-m-d H:i:s', time() - $windowSeconds);
 
         // Clean old rate limit entries
-        $db->exec("DELETE FROM rate_limits WHERE request_time < datetime('now', '-10 minutes');");
+        $cleanStmt = $db->prepare("DELETE FROM rate_limits WHERE request_time < ?");
+        $cleanStmt->execute([$cutoff]);
 
         // Count recent requests
         $stmt = $db->prepare("
             SELECT COUNT(*) FROM rate_limits 
-            WHERE ip_address = ? AND endpoint = ? AND request_time > datetime('now', '-10 minutes')
+            WHERE ip_address = ? AND endpoint = ? AND request_time > ?
         ");
-        $stmt->execute([$ip, $actionName]);
+        $stmt->execute([$ip, $actionName, $cutoff]);
         $count = (int)$stmt->fetchColumn();
 
         if ($count >= $maxAllowed) {
@@ -286,8 +291,9 @@ class RateLimiter {
         }
 
         // Record request
-        $insert = $db->prepare("INSERT INTO rate_limits (ip_address, endpoint, request_time) VALUES (?, ?, datetime('now'))");
-        $insert->execute([$ip, $actionName]);
+        $now = date('Y-m-d H:i:s');
+        $insert = $db->prepare("INSERT INTO rate_limits (ip_address, endpoint, request_time) VALUES (?, ?, ?)");
+        $insert->execute([$ip, $actionName, $now]);
     }
 }
 

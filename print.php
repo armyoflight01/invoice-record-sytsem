@@ -47,7 +47,7 @@ $itemStmt->execute([$id]);
 $items = $itemStmt->fetchAll();
 
 // Fetch settings
-$settings = $db->query("SELECT key, value FROM settings")->fetchAll(PDO::FETCH_KEY_PAIR);
+$settings = $db->query("SELECT `key`, value FROM settings")->fetchAll(PDO::FETCH_KEY_PAIR);
 
 $companyName = $settings['company_name'] ?? 'YARAMAY Computer Maintenance Services';
 $companyAddress = $settings['company_address'] ?? '#19 Street Brgy. San Andres Cainta Rizal Cambridge C5 -1G';

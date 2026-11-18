@@ -8,6 +8,22 @@
 error_reporting(E_ALL);
 ini_set('display_errors', '0');
 
+// ==========================================
+// Database Configuration (XAMPP MySQL & SQLite)
+// ==========================================
+// Set DB_DRIVER to 'mysql' to connect to XAMPP MySQL localhost (Default).
+// Set DB_DRIVER to 'sqlite' for portable file-based DB at data/invoices.db.
+// If MySQL is selected but XAMPP MySQL service is stopped, it gracefully falls back to SQLite.
+define('DB_DRIVER', 'mysql'); 
+
+// XAMPP Localhost MySQL Credentials:
+define('DB_HOST', '127.0.0.1'); // 'localhost' or '127.0.0.1'
+define('DB_PORT', '3306');
+define('DB_NAME', 'yaramay_invoices');
+define('DB_USER', 'root');
+define('DB_PASS', '');
+define('DB_CHARSET', 'utf8mb4');
+
 define('DATA_DIR', __DIR__ . DIRECTORY_SEPARATOR . 'data');
 define('SESSION_DIR', DATA_DIR . DIRECTORY_SEPARATOR . 'sessions');
 define('DB_FILE', DATA_DIR . DIRECTORY_SEPARATOR . 'invoices.db');
@@ -29,21 +45,75 @@ if (session_status() === PHP_SESSION_NONE) {
 
 function getDatabaseConnection(): PDO {
     static $pdo = null;
-    if ($pdo === null) {
-        $dsn = 'sqlite:' . DB_FILE;
-        $pdo = new PDO($dsn, null, null, [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        ]);
-        $pdo->exec('PRAGMA foreign_keys = ON;');
+
+    if ($pdo !== null) {
+        return $pdo;
     }
+
+    // 1. Try XAMPP MySQL Connection
+    if (DB_DRIVER === 'mysql') {
+        try {
+            $dsnServer = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";charset=" . DB_CHARSET;
+            $tmpPdo = new PDO($dsnServer, DB_USER, DB_PASS, [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_TIMEOUT => 2
+            ]);
+
+            // Auto create database if not exists
+            $tmpPdo->exec("CREATE DATABASE IF NOT EXISTS `" . DB_NAME . "` CHARACTER SET " . DB_CHARSET . " COLLATE utf8mb4_unicode_ci;");
+
+            // Connect to database
+            $dsnDb = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET;
+            $pdo = new PDO($dsnDb, DB_USER, DB_PASS, [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_EMULATE_PREPARES => false
+            ]);
+            $pdo->exec("SET NAMES " . DB_CHARSET . ";");
+            return $pdo;
+        } catch (Exception $e) {
+            // Graceful fallback to SQLite if MySQL is stopped or in sandbox mode
+            error_log("[DATABASE] XAMPP MySQL connection to " . DB_HOST . ":" . DB_PORT . " failed (" . $e->getMessage() . "). Falling back to SQLite.");
+        }
+    }
+
+    // 2. SQLite Connection (Default or Fallback)
+    $dsn = 'sqlite:' . DB_FILE;
+    $pdo = new PDO($dsn, null, null, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+    ]);
+    $pdo->exec('PRAGMA foreign_keys = ON;');
     return $pdo;
+}
+
+function getDatabaseDriver(): string {
+    return getDatabaseConnection()->getAttribute(PDO::ATTR_DRIVER_NAME);
 }
 
 function initDatabaseSchema(): void {
     $db = getDatabaseConnection();
+    $driver = $db->getAttribute(PDO::ATTR_DRIVER_NAME);
 
-    // Tables schema
+    // If using MySQL on XAMPP, auto-initialize from database.sql if empty
+    if ($driver === 'mysql') {
+        $tableCount = (int)$db->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '" . DB_NAME . "'")->fetchColumn();
+        if ($tableCount === 0 && file_exists(__DIR__ . '/database.sql')) {
+            $sql = file_get_contents(__DIR__ . '/database.sql');
+            $queries = explode(";\n", $sql);
+            foreach ($queries as $q) {
+                $q = trim($q);
+                if (!empty($q)) {
+                    try {
+                        $db->exec($q);
+                    } catch (Exception $e) {}
+                }
+            }
+        }
+        return;
+    }
+
+    // Tables schema for SQLite
     $queries = [
         "CREATE TABLE IF NOT EXISTS settings (
             key TEXT PRIMARY KEY,
@@ -196,8 +266,8 @@ function initDatabaseSchema(): void {
         'invoice_footer'     => "We are open for your suggestions on improving our services with you.\nPayment can be transferred through STC Pay or GCash (Account Name: Ferdenand Sabado, GCash #: 09617190588).\nThanking you for doing Business with us!"
     ];
 
-    $checkStmt = $db->prepare("SELECT COUNT(*) as count FROM settings WHERE key = ?");
-    $insertStmt = $db->prepare("INSERT INTO settings (key, value) VALUES (?, ?)");
+    $checkStmt = $db->prepare("SELECT COUNT(*) as count FROM settings WHERE `key` = ?");
+    $insertStmt = $db->prepare("INSERT INTO settings (`key`, `value`) VALUES (?, ?)");
 
     foreach ($defaultSettings as $k => $v) {
         $checkStmt->execute([$k]);
@@ -260,13 +330,22 @@ function initDatabaseSchema(): void {
 
 function ensureColumnExists(PDO $db, string $table, string $column, string $definition): void {
     try {
-        $stmt = $db->query("PRAGMA table_info($table)");
-        $cols = $stmt->fetchAll(PDO::FETCH_COLUMN, 1);
-        if (!in_array($column, $cols)) {
-            $db->exec("ALTER TABLE $table ADD COLUMN $column $definition;");
+        $driver = $db->getAttribute(PDO::ATTR_DRIVER_NAME);
+        if ($driver === 'sqlite') {
+            $stmt = $db->query("PRAGMA table_info($table)");
+            $cols = $stmt->fetchAll(PDO::FETCH_COLUMN, 1);
+            if (!in_array($column, $cols)) {
+                $db->exec("ALTER TABLE $table ADD COLUMN $column $definition;");
+            }
+        } else {
+            $stmt = $db->prepare("SHOW COLUMNS FROM `$table` LIKE ?");
+            $stmt->execute([$column]);
+            if (!$stmt->fetch()) {
+                $db->exec("ALTER TABLE `$table` ADD COLUMN `$column` $definition;");
+            }
         }
     } catch (Exception $e) {
-        // Table or column check error
+        // Column check or table check error
     }
 }
 

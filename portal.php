@@ -8,7 +8,7 @@
 
 require_once __DIR__ . '/config.php';
 $db = getDatabaseConnection();
-$settings = $db->query("SELECT key, value FROM settings")->fetchAll(PDO::FETCH_KEY_PAIR);
+$settings = $db->query("SELECT `key`, value FROM settings")->fetchAll(PDO::FETCH_KEY_PAIR);
 
 $companyName = $settings['company_name'] ?? 'YARAMAY Computer Maintenance Services';
 $companyPhone = $settings['company_phone'] ?? '+639075251376 (SMS) / +966508624264';

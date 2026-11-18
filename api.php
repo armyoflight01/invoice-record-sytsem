@@ -143,11 +143,12 @@ try {
                     jsonError('Password is required for new admin users.');
                 }
                 $hashed = password_hash($password, PASSWORD_DEFAULT);
+                $now = date('Y-m-d H:i:s');
                 $stmt = $db->prepare("
                     INSERT INTO users (username, password, full_name, role, email, created_at, updated_at)
-                    VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
                 ");
-                $stmt->execute([$username, $hashed, $fullName, $role, $email]);
+                $stmt->execute([$username, $hashed, $fullName, $role, $email, $now, $now]);
                 $newId = (int)$db->lastInsertId();
                 jsonSuccess(['id' => $newId], 'Admin user created successfully.');
             } else {
@@ -158,19 +159,20 @@ try {
                     jsonError('User not found.');
                 }
 
+                $now = date('Y-m-d H:i:s');
                 if (!empty($password)) {
                     $hashed = password_hash($password, PASSWORD_DEFAULT);
                     $stmt = $db->prepare("
-                        UPDATE users SET username = ?, full_name = ?, role = ?, email = ?, password = ?, updated_at = datetime('now')
+                        UPDATE users SET username = ?, full_name = ?, role = ?, email = ?, password = ?, updated_at = ?
                         WHERE id = ?
                     ");
-                    $stmt->execute([$username, $fullName, $role, $email, $hashed, $id]);
+                    $stmt->execute([$username, $fullName, $role, $email, $hashed, $now, $id]);
                 } else {
                     $stmt = $db->prepare("
-                        UPDATE users SET username = ?, full_name = ?, role = ?, email = ?, updated_at = datetime('now')
+                        UPDATE users SET username = ?, full_name = ?, role = ?, email = ?, updated_at = ?
                         WHERE id = ?
                     ");
-                    $stmt->execute([$username, $fullName, $role, $email, $id]);
+                    $stmt->execute([$username, $fullName, $role, $email, $now, $id]);
                 }
 
                 // If currently logged-in user updated their own info, refresh session
@@ -229,7 +231,8 @@ try {
             }
 
             $newHash = password_hash($newPassword, PASSWORD_DEFAULT);
-            $db->prepare("UPDATE users SET password = ?, updated_at = datetime('now') WHERE id = ?")->execute([$newHash, $userId]);
+            $now = date('Y-m-d H:i:s');
+            $db->prepare("UPDATE users SET password = ?, updated_at = ? WHERE id = ?")->execute([$newHash, $now, $userId]);
             jsonSuccess(null, 'Password changed successfully!');
             break;
 
@@ -406,7 +409,7 @@ try {
             $invoice['items'] = $itemStmt->fetchAll();
 
             // Settings
-            $settingsList = $db->query("SELECT key, value FROM settings")->fetchAll(PDO::FETCH_KEY_PAIR);
+            $settingsList = $db->query("SELECT `key`, value FROM settings")->fetchAll(PDO::FETCH_KEY_PAIR);
             $invoice['settings'] = $settingsList;
 
             jsonSuccess($invoice);
@@ -708,6 +711,9 @@ try {
 
             $clientNote = "Requested via Client Invoice Portal.\nPayment Method: " . strtoupper($paymentMethod) . " (GCash: Ferdenand Sabado - 09617190588)\nAssigned Account: " . $partnerLabel . "\n" . $formulaText . "\n" . $notes;
 
+            $today = date('Y-m-d');
+            $dueDate = date('Y-m-d', strtotime('+15 days'));
+
             $insertInv = $db->prepare("
                 INSERT INTO invoices (
                     invoice_number, client_id, issue_date, due_date, status, 
@@ -716,11 +722,13 @@ try {
                     subtotal, discount, tax_amount, grand_total,
                     paid_amount, remaining_balance, price_note, amount_due_note,
                     notes, submitted_by
-                ) VALUES (?, ?, date('now'), date('now', '+15 days'), 'pending', ?, ?, ?, ?, ?, 0, 0, ?, 0, 0, ?, 0, ?, ?, ?, ?, 'client')
+                ) VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, 0, 0, ?, 0, 0, ?, 0, ?, ?, ?, ?, 'client')
             ");
             $insertInv->execute([
                 $invoiceNumber,
                 $clientId,
+                $today,
+                $dueDate,
                 $paymentMethod,
                 $paymentTerm,
                 $installmentMonths,
@@ -1011,7 +1019,7 @@ try {
         // 11. Settings Management
         // ==========================================
         case 'get_settings':
-            $settings = $db->query("SELECT key, value FROM settings")->fetchAll(PDO::FETCH_KEY_PAIR);
+            $settings = $db->query("SELECT `key`, value FROM settings")->fetchAll(PDO::FETCH_KEY_PAIR);
             jsonSuccess($settings);
             break;
 
@@ -1024,7 +1032,12 @@ try {
                 'currency', 'currency_symbol', 'default_tax_rate', 'invoice_prefix', 'invoice_footer'
             ];
 
-            $stmt = $db->prepare("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value");
+            $driver = $db->getAttribute(PDO::ATTR_DRIVER_NAME);
+            if ($driver === 'mysql') {
+                $stmt = $db->prepare("INSERT INTO settings (`key`, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)");
+            } else {
+                $stmt = $db->prepare("INSERT INTO settings (`key`, value) VALUES (?, ?) ON CONFLICT(`key`) DO UPDATE SET value = excluded.value");
+            }
             foreach ($allowedKeys as $k) {
                 if (isset($_POST[$k])) {
                     $stmt->execute([$k, trim($_POST[$k])]);
@@ -1042,7 +1055,7 @@ try {
                 'version'    => '2.7',
                 'system'     => 'YARAMAY Computer Maintenance Services',
                 'timestamp'  => date('c'),
-                'settings'   => $db->query("SELECT key, value FROM settings")->fetchAll(PDO::FETCH_KEY_PAIR),
+                'settings'   => $db->query("SELECT `key`, value FROM settings")->fetchAll(PDO::FETCH_KEY_PAIR),
                 'clients'    => $db->query("SELECT * FROM clients")->fetchAll(),
                 'products'   => $db->query("SELECT * FROM products")->fetchAll(),
                 'invoices'   => $db->query("SELECT * FROM invoices")->fetchAll(),
@@ -1157,7 +1170,12 @@ try {
             }
 
             if (isset($data['settings']) && is_array($data['settings'])) {
-                $sStmt = $db->prepare("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value");
+                $driver = $db->getAttribute(PDO::ATTR_DRIVER_NAME);
+                if ($driver === 'mysql') {
+                    $sStmt = $db->prepare("INSERT INTO settings (`key`, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)");
+                } else {
+                    $sStmt = $db->prepare("INSERT INTO settings (`key`, value) VALUES (?, ?) ON CONFLICT(`key`) DO UPDATE SET value = excluded.value");
+                }
                 foreach ($data['settings'] as $k => $v) {
                     $sStmt->execute([$k, $v]);
                 }
@@ -1178,11 +1196,16 @@ try {
                 LIMIT 50
             ")->fetchAll();
 
+            $cutoff = date('Y-m-d H:i:s', time() - 900);
+            $lockoutStmt = $db->prepare("SELECT COUNT(DISTINCT ip_address) FROM login_attempts WHERE attempt_time > ?");
+            $lockoutStmt->execute([$cutoff]);
+            $activeLockouts = (int)$lockoutStmt->fetchColumn();
+
             $stats = [
                 'total_attacks_blocked' => (int)$db->query("SELECT COUNT(*) FROM security_logs WHERE event_type = 'ATTACK_BLOCKED'")->fetchColumn(),
                 'total_failed_logins'   => (int)$db->query("SELECT COUNT(*) FROM security_logs WHERE event_type = 'LOGIN_FAILED'")->fetchColumn(),
                 'total_lockouts'        => (int)$db->query("SELECT COUNT(*) FROM security_logs WHERE event_type = 'BRUTE_FORCE_LOCKOUT'")->fetchColumn(),
-                'active_lockouts'       => (int)$db->query("SELECT COUNT(DISTINCT ip_address) FROM login_attempts WHERE attempt_time > datetime('now', '-15 minutes')")->fetchColumn()
+                'active_lockouts'       => $activeLockouts
             ];
 
             jsonSuccess([
