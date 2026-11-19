@@ -803,11 +803,16 @@ const App = {
                 const d = result.data;
                 
                 // KPIs
-                document.getElementById('kpiTotalSales').innerText = `${this.formatMoney(d.total_sales)} ${this.currency}`;
-                document.getElementById('kpiPaidTotal').innerText = `${this.formatMoney(d.paid_total)} ${this.currency}`;
-                document.getElementById('kpiUnpaidTotal').innerText = `${this.formatMoney(d.remaining_balance_total)} ${this.currency}`;
-                document.getElementById('kpiClientCount').innerText = `${d.client_count}`;
-                document.getElementById('kpiInvoiceCount').innerText = `${d.invoice_count} ${this.t('invoice_word')}`;
+                const kpiSales = document.getElementById('kpiTotalSales');
+                if (kpiSales) kpiSales.innerText = `${this.formatMoney(d.total_sales)} ${this.currency}`;
+                const kpiPaid = document.getElementById('kpiPaidTotal');
+                if (kpiPaid) kpiPaid.innerText = `${this.formatMoney(d.paid_total)} ${this.currency}`;
+                const kpiUnpaid = document.getElementById('kpiUnpaidTotal');
+                if (kpiUnpaid) kpiUnpaid.innerText = `${this.formatMoney(d.remaining_balance_total)} ${this.currency}`;
+                const kpiClient = document.getElementById('kpiClientCount');
+                if (kpiClient) kpiClient.innerText = `${d.client_count}`;
+                const kpiInvoice = document.getElementById('kpiInvoiceCount');
+                if (kpiInvoice) kpiInvoice.innerText = `${d.invoice_count} ${this.t('invoice_word')}`;
 
                 // Partner Earnings
                 const ibraheemEl = document.getElementById('kpiIbraheemTotal');
@@ -860,7 +865,10 @@ const App = {
                     } else {
                         tbody.innerHTML = d.recent_invoices.map(inv => `
                             <tr>
-                                <td><strong style="color:var(--primary); font-family:monospace; font-size:13.5px;">${this.escapeHtml(inv.invoice_number)}</strong></td>
+                                <td>
+                                    <strong style="color:var(--primary); font-family:monospace; font-size:13.5px;">${this.escapeHtml(inv.invoice_number)}</strong>
+                                    <div style="font-size:11px; color:#64748b; margin-top:2px;">📅 ${inv.issue_date}</div>
+                                </td>
                                 <td>
                                     <div style="font-weight:700;">${this.escapeHtml(inv.client_name || this.t('cash_client'))}</div>
                                     ${inv.contact_person ? `<div style="font-size:11.5px; color:#64748b;">👤 ${this.escapeHtml(inv.contact_person)}</div>` : ''}
@@ -871,7 +879,7 @@ const App = {
                                 </td>
                                 <td style="color:#15803d; font-weight:600;">${this.formatMoney(inv.paid_amount)}</td>
                                 <td>${this.renderBalanceBadge(inv.remaining_balance)}</td>
-                                <td>${this.renderPartnerBadge(inv.partner_assigned, inv.ibraheem_share, inv.fawas_share)}</td>
+                                <td>${this.renderPartnerBadge(inv.partner_assigned, inv.ibraheem_share, inv.fawas_share, inv.id, inv.invoice_number)}</td>
                                 <td>${this.renderStatusBadge(inv.status)}</td>
                                 <td>
                                     <div class="actions-cell">
@@ -936,7 +944,13 @@ const App = {
 
         tbody.innerHTML = this.invoices.map(inv => `
             <tr>
-                <td><strong style="color:var(--primary); font-family:monospace; font-size:14px;">${this.escapeHtml(inv.invoice_number)}</strong></td>
+                <td>
+                    <strong style="color:var(--primary); font-family:monospace; font-size:14px;">${this.escapeHtml(inv.invoice_number)}</strong>
+                    <div style="font-size:11.5px; color:#475569; margin-top:3px; display:flex; align-items:center; gap:4px;">
+                        <span>📅 ${inv.issue_date}</span>
+                    </div>
+                    ${inv.due_date ? `<div style="font-size:10.5px; color:#94a3b8; margin-top:1px;">Due: ${inv.due_date}</div>` : ''}
+                </td>
                 <td>
                     <div style="font-weight:700; color:var(--text-heading);">${this.escapeHtml(inv.client_name || this.t('cash_client'))}</div>
                     ${inv.contact_person ? `<div style="font-size:12px; color:#475569;">👤 ${this.escapeHtml(inv.contact_person)}</div>` : ''}
@@ -956,7 +970,7 @@ const App = {
                     ` : ''}
                 </td>
                 <td>${this.renderBalanceBadge(inv.remaining_balance)}</td>
-                <td>${this.renderPartnerBadge(inv.partner_assigned, inv.ibraheem_share, inv.fawas_share)}</td>
+                <td>${this.renderPartnerBadge(inv.partner_assigned, inv.ibraheem_share, inv.fawas_share, inv.id, inv.invoice_number)}</td>
                 <td>${this.renderStatusBadge(inv.status)}</td>
                 <td>
                     <div class="actions-cell">
@@ -1051,28 +1065,44 @@ const App = {
     },
 
     openNewClientModal() {
-        document.getElementById('clientIdInput').value = '';
-        document.getElementById('clientNameInput').value = '';
-        document.getElementById('clientContactPersonInput').value = '';
-        document.getElementById('clientPhoneInput').value = '';
-        document.getElementById('clientEmailInput').value = '';
-        document.getElementById('clientAddressInput').value = '';
-        document.getElementById('clientTaxInput').value = '';
-        document.getElementById('clientModalTitle').innerText = this.t('client_modal_title_new');
+        const idInput = document.getElementById('clientIdInput');
+        if (idInput) idInput.value = '';
+        const nameInput = document.getElementById('clientNameInput');
+        if (nameInput) nameInput.value = '';
+        const contactInput = document.getElementById('clientContactPersonInput');
+        if (contactInput) contactInput.value = '';
+        const phoneInput = document.getElementById('clientPhoneInput');
+        if (phoneInput) phoneInput.value = '';
+        const emailInput = document.getElementById('clientEmailInput');
+        if (emailInput) emailInput.value = '';
+        const addrInput = document.getElementById('clientAddressInput');
+        if (addrInput) addrInput.value = '';
+        const taxInput = document.getElementById('clientTaxInput');
+        if (taxInput) taxInput.value = '';
+        const titleEl = document.getElementById('clientModalTitle');
+        if (titleEl) titleEl.innerText = this.t('client_modal_title_new');
         this.openModal('clientModal');
     },
 
     editClient(id) {
         const client = this.clients.find(c => c.id == id);
         if (!client) return;
-        document.getElementById('clientIdInput').value = client.id;
-        document.getElementById('clientNameInput').value = client.name;
-        document.getElementById('clientContactPersonInput').value = client.contact_person || '';
-        document.getElementById('clientPhoneInput').value = client.phone || '';
-        document.getElementById('clientEmailInput').value = client.email || '';
-        document.getElementById('clientAddressInput').value = client.address || '';
-        document.getElementById('clientTaxInput').value = client.tax_number || '';
-        document.getElementById('clientModalTitle').innerText = this.t('client_modal_title_edit');
+        const idInput = document.getElementById('clientIdInput');
+        if (idInput) idInput.value = client.id;
+        const nameInput = document.getElementById('clientNameInput');
+        if (nameInput) nameInput.value = client.name;
+        const contactInput = document.getElementById('clientContactPersonInput');
+        if (contactInput) contactInput.value = client.contact_person || '';
+        const phoneInput = document.getElementById('clientPhoneInput');
+        if (phoneInput) phoneInput.value = client.phone || '';
+        const emailInput = document.getElementById('clientEmailInput');
+        if (emailInput) emailInput.value = client.email || '';
+        const addrInput = document.getElementById('clientAddressInput');
+        if (addrInput) addrInput.value = client.address || '';
+        const taxInput = document.getElementById('clientTaxInput');
+        if (taxInput) taxInput.value = client.tax_number || '';
+        const titleEl = document.getElementById('clientModalTitle');
+        if (titleEl) titleEl.innerText = this.t('client_modal_title_edit');
         this.openModal('clientModal');
     },
 
@@ -1188,7 +1218,7 @@ const App = {
                                             <td><strong>${this.formatMoney(inv.grand_total)} ${this.currency}</strong></td>
                                             <td style="color:#15803d; font-weight:600;">${this.formatMoney(inv.paid_amount)}</td>
                                             <td>${this.renderBalanceBadge(inv.remaining_balance)}</td>
-                                            <td>${this.renderPartnerBadge(inv.partner_assigned, inv.ibraheem_share, inv.fawas_share)}</td>
+                                            <td>${this.renderPartnerBadge(inv.partner_assigned, inv.ibraheem_share, inv.fawas_share, inv.id, inv.invoice_number)}</td>
                                             <td>${this.renderStatusBadge(inv.status)}</td>
                                             <td>
                                                 <div class="actions-cell">
@@ -1344,22 +1374,34 @@ const App = {
         const inv = this.invoices.find(i => i.id == invoiceId);
         if (!inv) return;
 
-        document.getElementById('quickPayInvoiceId').value = inv.id;
-        document.getElementById('quickPayInvoiceNum').innerText = inv.invoice_number;
-        document.getElementById('quickPayClientName').innerText = inv.client_name;
-        document.getElementById('quickPayGrandTotal').innerText = `${this.formatMoney(inv.grand_total)} ${this.currency}`;
-        document.getElementById('quickPayCurrentPaid').innerText = `${this.formatMoney(inv.paid_amount)} ${this.currency}`;
-        document.getElementById('quickPayCurrentBalance').innerText = `${this.formatMoney(inv.remaining_balance)} ${this.currency}`;
+        const idEl = document.getElementById('quickPayInvoiceId');
+        if (idEl) idEl.value = inv.id;
+        const numEl = document.getElementById('quickPayInvoiceNum');
+        if (numEl) numEl.innerText = inv.invoice_number;
+        const clientEl = document.getElementById('quickPayClientName');
+        if (clientEl) clientEl.innerText = inv.client_name || '';
+        const grandEl = document.getElementById('quickPayGrandTotal');
+        if (grandEl) grandEl.innerText = `${this.formatMoney(inv.grand_total)} ${this.currency}`;
+        const paidEl = document.getElementById('quickPayCurrentPaid');
+        if (paidEl) paidEl.innerText = `${this.formatMoney(inv.paid_amount)} ${this.currency}`;
+        const balEl = document.getElementById('quickPayCurrentBalance');
+        if (balEl) balEl.innerText = `${this.formatMoney(inv.remaining_balance)} ${this.currency}`;
 
         // Partner assignment info
         const partner = inv.partner_assigned || 'both';
-        document.getElementById('quickPayPartnerLabel').innerText = (partner === 'both') 
-            ? 'Both (Mr. Ibraheem & Mr. Fawas - 50/50 Split)' 
-            : ((partner === 'ibraheem') ? 'Mr. Ibraheem (100%)' : 'Mr. Fawas (100%)');
+        const partnerLabelEl = document.getElementById('quickPayPartnerLabel');
+        if (partnerLabelEl) {
+            partnerLabelEl.innerText = (partner === 'both') 
+                ? 'Both (Mr. Ibraheem & Mr. Fawas - 50/50 Split)' 
+                : ((partner === 'ibraheem') ? 'Mr. Ibraheem (100%)' : 'Mr. Fawas (100%)');
+        }
 
-        document.getElementById('quickPayAmountInput').value = inv.remaining_balance > 0 ? inv.remaining_balance : '';
-        document.getElementById('quickPayMethodSelect').value = 'gcash';
-        document.getElementById('quickPayNoteInput').value = '';
+        const amtInput = document.getElementById('quickPayAmountInput');
+        if (amtInput) amtInput.value = inv.remaining_balance > 0 ? inv.remaining_balance : '';
+        const methodSelect = document.getElementById('quickPayMethodSelect');
+        if (methodSelect) methodSelect.value = 'gcash';
+        const noteInput = document.getElementById('quickPayNoteInput');
+        if (noteInput) noteInput.value = '';
 
         this.openModal('quickPaymentModal');
     },
@@ -1394,35 +1436,59 @@ const App = {
     // ==========================================
     openNewInvoiceModal() {
         this.editingInvoiceId = null;
-        document.getElementById('invoiceIdInput').value = '';
-        document.getElementById('invoiceFormTitle').innerText = this.t('btn_new_invoice');
+        const idInput = document.getElementById('invoiceIdInput');
+        if (idInput) idInput.value = '';
+        const formTitle = document.getElementById('invoiceFormTitle');
+        if (formTitle) formTitle.innerText = this.t('btn_new_invoice');
         
-        document.getElementById('toggleNewClientCheck').checked = false;
-        document.getElementById('quickNewClientBox').style.display = 'none';
-        document.getElementById('existingClientGroup').style.display = 'block';
-        document.getElementById('quickNewClientName').value = '';
-        document.getElementById('quickNewContactPerson').value = '';
-        document.getElementById('quickNewPhone').value = '';
-        document.getElementById('quickNewAddress').value = '';
+        const newClientCheck = document.getElementById('toggleNewClientCheck');
+        if (newClientCheck) newClientCheck.checked = false;
+        const quickBox = document.getElementById('quickNewClientBox');
+        if (quickBox) quickBox.style.display = 'none';
+        const existGroup = document.getElementById('existingClientGroup');
+        if (existGroup) existGroup.style.display = 'block';
+
+        const quickName = document.getElementById('quickNewClientName');
+        if (quickName) quickName.value = '';
+        const quickContact = document.getElementById('quickNewContactPerson');
+        if (quickContact) quickContact.value = '';
+        const quickPhone = document.getElementById('quickNewPhone');
+        if (quickPhone) quickPhone.value = '';
+        const quickAddr = document.getElementById('quickNewAddress');
+        if (quickAddr) quickAddr.value = '';
 
         const nextNum = Math.floor(100 + Math.random() * 900);
-        document.getElementById('invoiceNumberInput').value = `00${nextNum}`;
-        document.getElementById('invoiceIssueDate').value = new Date().toISOString().split('T')[0];
-        
-        const dueDate = new Date();
-        dueDate.setDate(dueDate.getDate() + 15);
-        document.getElementById('invoiceDueDate').value = dueDate.toISOString().split('T')[0];
+        const numInput = document.getElementById('invoiceNumberInput');
+        if (numInput) numInput.value = `00${nextNum}`;
 
-        document.getElementById('invoiceStatusSelect').value = 'paid';
-        document.getElementById('invoicePaymentMethod').value = 'gcash';
-        document.getElementById('invoicePaymentTerm').value = 'full';
-        document.getElementById('invoiceInstallmentMonths').value = '1';
-        document.getElementById('invoicePartnerAssigned').value = 'both';
-        document.getElementById('invoicePriceNote').value = 'PHP 7,500 Per Month';
-        document.getElementById('invoiceAmountDueNote').value = '7,500 PHP';
-        document.getElementById('invoicePaidAmountInput').value = '7500.00';
-        document.getElementById('invoiceRemainingBalanceInput').value = '0.00';
-        document.getElementById('invoiceNotesInput').value = "We are open for your suggestions on improving our services with you.\nPayment can be transferred through STC Pay or GCash (Account Name: Ferdenand Sabado, GCash #: 09617190588).\nThanking you for doing Business with us!";
+        const issueDate = document.getElementById('invoiceIssueDate');
+        if (issueDate) issueDate.value = new Date().toISOString().split('T')[0];
+        
+        const dueDateObj = new Date();
+        dueDateObj.setDate(dueDateObj.getDate() + 15);
+        const dueDate = document.getElementById('invoiceDueDate');
+        if (dueDate) dueDate.value = dueDateObj.toISOString().split('T')[0];
+
+        const statusSelect = document.getElementById('invoiceStatusSelect');
+        if (statusSelect) statusSelect.value = 'paid';
+        const payMethod = document.getElementById('invoicePaymentMethod');
+        if (payMethod) payMethod.value = 'gcash';
+        const payTerm = document.getElementById('invoicePaymentTerm');
+        if (payTerm) payTerm.value = 'full';
+        const instMonths = document.getElementById('invoiceInstallmentMonths');
+        if (instMonths) instMonths.value = '1';
+        const partnerAssigned = document.getElementById('invoicePartnerAssigned');
+        if (partnerAssigned) partnerAssigned.value = 'both';
+        const priceNote = document.getElementById('invoicePriceNote');
+        if (priceNote) priceNote.value = 'PHP 7,500 Per Month';
+        const dueNote = document.getElementById('invoiceAmountDueNote');
+        if (dueNote) dueNote.value = '7,500 PHP';
+        const paidInput = document.getElementById('invoicePaidAmountInput');
+        if (paidInput) paidInput.value = '7500.00';
+        const balInput = document.getElementById('invoiceRemainingBalanceInput');
+        if (balInput) balInput.value = '0.00';
+        const notesInput = document.getElementById('invoiceNotesInput');
+        if (notesInput) notesInput.value = "We are open for your suggestions on improving our services with you.\nPayment can be transferred through STC Pay or GCash (Account Name: Ferdenand Sabado, GCash #: 09617190588).\nThanking you for doing Business with us!";
 
         const tbody = document.getElementById('invoiceItemsTableBody');
         tbody.innerHTML = '';
@@ -1487,50 +1553,82 @@ const App = {
     async editInvoice(id) {
         try {
             const res = await fetch(`api.php?action=get_invoice&id=${id}`);
-            const result = await res.json();
+            const text = await res.text();
+            let result;
+            try {
+                result = JSON.parse(text);
+            } catch (jsonErr) {
+                console.error('Non-JSON get_invoice response:', text);
+                this.showToast('Server returned invalid data. Please refresh and try again.', 'error');
+                return;
+            }
+
             if (!result.success) {
-                this.showToast(result.message, 'error');
+                this.showToast(result.message || 'Failed to load invoice details', 'error');
                 return;
             }
 
             const inv = result.data;
             this.editingInvoiceId = inv.id;
-            document.getElementById('invoiceIdInput').value = inv.id;
-            document.getElementById('invoiceFormTitle').innerText = `${this.t('btn_edit')} ${inv.invoice_number}`;
-            document.getElementById('invoiceNumberInput').value = inv.invoice_number;
+            
+            const idInput = document.getElementById('invoiceIdInput');
+            if (idInput) idInput.value = inv.id;
+            const titleEl = document.getElementById('invoiceFormTitle');
+            if (titleEl) titleEl.innerText = `${this.t('btn_edit')} #${inv.invoice_number}`;
+            const numInput = document.getElementById('invoiceNumberInput');
+            if (numInput) numInput.value = inv.invoice_number;
 
-            document.getElementById('toggleNewClientCheck').checked = false;
-            document.getElementById('quickNewClientBox').style.display = 'none';
-            document.getElementById('existingClientGroup').style.display = 'block';
-            document.getElementById('invoiceClientSelect').value = inv.client_id || '';
+            const newClientCheck = document.getElementById('toggleNewClientCheck');
+            if (newClientCheck) newClientCheck.checked = false;
+            const quickBox = document.getElementById('quickNewClientBox');
+            if (quickBox) quickBox.style.display = 'none';
+            const existGroup = document.getElementById('existingClientGroup');
+            if (existGroup) existGroup.style.display = 'block';
+            const clientSelect = document.getElementById('invoiceClientSelect');
+            if (clientSelect) clientSelect.value = inv.client_id || '';
 
-            document.getElementById('invoiceIssueDate').value = inv.issue_date;
-            document.getElementById('invoiceDueDate').value = inv.due_date || '';
-            document.getElementById('invoiceStatusSelect').value = inv.status;
-            document.getElementById('invoicePaymentMethod').value = inv.payment_method || 'gcash';
-            document.getElementById('invoicePaymentTerm').value = inv.payment_term || 'full';
-            document.getElementById('invoiceInstallmentMonths').value = inv.installment_months || 1;
-            document.getElementById('invoicePartnerAssigned').value = inv.partner_assigned || 'both';
-            document.getElementById('invoicePriceNote').value = inv.price_note || '';
-            document.getElementById('invoiceAmountDueNote').value = inv.amount_due_note || '';
-            document.getElementById('invoicePaidAmountInput').value = inv.paid_amount || '0.00';
-            document.getElementById('invoiceRemainingBalanceInput').value = inv.remaining_balance || '0.00';
-            document.getElementById('invoiceNotesInput').value = inv.notes || '';
+            const issueDateEl = document.getElementById('invoiceIssueDate');
+            if (issueDateEl) issueDateEl.value = (inv.issue_date || '').substring(0, 10);
+            const dueDateEl = document.getElementById('invoiceDueDate');
+            if (dueDateEl) dueDateEl.value = (inv.due_date || '').substring(0, 10);
+            const statusEl = document.getElementById('invoiceStatusSelect');
+            if (statusEl) statusEl.value = inv.status;
+            const payMethodEl = document.getElementById('invoicePaymentMethod');
+            if (payMethodEl) payMethodEl.value = inv.payment_method || 'gcash';
+            const payTermEl = document.getElementById('invoicePaymentTerm');
+            if (payTermEl) payTermEl.value = inv.payment_term || 'full';
+            const monthsEl = document.getElementById('invoiceInstallmentMonths');
+            if (monthsEl) monthsEl.value = inv.installment_months || 1;
+            const partnerEl = document.getElementById('invoicePartnerAssigned');
+            if (partnerEl) partnerEl.value = inv.partner_assigned || 'both';
+            const priceNoteEl = document.getElementById('invoicePriceNote');
+            if (priceNoteEl) priceNoteEl.value = inv.price_note || '';
+            const amountDueNoteEl = document.getElementById('invoiceAmountDueNote');
+            if (amountDueNoteEl) amountDueNoteEl.value = inv.amount_due_note || '';
+            const paidEl = document.getElementById('invoicePaidAmountInput');
+            if (paidEl) paidEl.value = inv.paid_amount || '0.00';
+            const balanceEl = document.getElementById('invoiceRemainingBalanceInput');
+            if (balanceEl) balanceEl.value = inv.remaining_balance || '0.00';
+            const notesEl = document.getElementById('invoiceNotesInput');
+            if (notesEl) notesEl.value = inv.notes || '';
 
             const tbody = document.getElementById('invoiceItemsTableBody');
-            tbody.innerHTML = '';
-            if (inv.items && inv.items.length > 0) {
-                inv.items.forEach(it => {
-                    this.addInvoiceItemRow(it.item_name, it.description, it.quantity, it.unit_price, it.discount, it.tax_rate);
-                });
-            } else {
-                this.addInvoiceItemRow();
+            if (tbody) {
+                tbody.innerHTML = '';
+                if (inv.items && inv.items.length > 0) {
+                    inv.items.forEach(it => {
+                        this.addInvoiceItemRow(it.item_name, it.description, it.quantity, it.unit_price, it.discount, it.tax_rate);
+                    });
+                } else {
+                    this.addInvoiceItemRow();
+                }
             }
 
             this.recalculateTotals();
             this.openModal('invoiceModal');
         } catch (err) {
-            this.showToast('Failed to load invoice details', 'error');
+            console.error('editInvoice error:', err);
+            this.showToast('Failed to load invoice details: ' + (err.message || ''), 'error');
         }
     },
 
@@ -1612,10 +1710,17 @@ const App = {
 
         const grandTotal = Math.max(0, subtotal - totalDiscount + totalTax);
 
-        document.getElementById('calcSubtotal').innerText = `${this.formatMoney(subtotal)} ${this.currency}`;
-        document.getElementById('calcDiscount').innerText = `${this.formatMoney(totalDiscount)} ${this.currency}`;
-        document.getElementById('calcTax').innerText = `${this.formatMoney(totalTax)} ${this.currency}`;
-        document.getElementById('calcGrandTotal').innerText = `${this.formatMoney(grandTotal)} ${this.currency}`;
+        const subEl = document.getElementById('calcSubtotal');
+        if (subEl) subEl.innerText = `${this.formatMoney(subtotal)} ${this.currency}`;
+
+        const discEl = document.getElementById('calcDiscount');
+        if (discEl) discEl.innerText = `${this.formatMoney(totalDiscount)} ${this.currency}`;
+
+        const taxEl = document.getElementById('calcTax');
+        if (taxEl) taxEl.innerText = `${this.formatMoney(totalTax)} ${this.currency}`;
+
+        const grandEl = document.getElementById('calcGrandTotal');
+        if (grandEl) grandEl.innerText = `${this.formatMoney(grandTotal)} ${this.currency}`;
 
         // Compute monthly installment
         const months = Math.max(1, parseInt(document.getElementById('invoiceInstallmentMonths')?.value) || 1);
@@ -1623,14 +1728,15 @@ const App = {
         const monthlyCalcEl = document.getElementById('calcMonthlyPayment');
         if (monthlyCalcEl) monthlyCalcEl.innerText = `${this.formatMoney(monthly)} ${this.currency} (${months} mos)`;
 
-        const paidAmount = parseFloat(document.getElementById('invoicePaidAmountInput').value) || 0;
+        const paidInput = document.getElementById('invoicePaidAmountInput');
+        const paidAmount = paidInput ? (parseFloat(paidInput.value) || 0) : 0;
         const balanceField = document.getElementById('invoiceRemainingBalanceInput');
         if (balanceField && !balanceField.dataset.manualOverride) {
             balanceField.value = Math.max(0, grandTotal - paidAmount).toFixed(2);
         }
 
         const balCalcEl = document.getElementById('calcRemainingBalance');
-        if (balCalcEl) balCalcEl.innerText = `${this.formatMoney(balanceField.value)} ${this.currency}`;
+        if (balCalcEl && balanceField) balCalcEl.innerText = `${this.formatMoney(balanceField.value)} ${this.currency}`;
     },
 
     async saveInvoice() {
@@ -1747,8 +1853,20 @@ const App = {
     async viewInvoice(id) {
         try {
             const res = await fetch(`api.php?action=get_invoice&id=${id}`);
-            const result = await res.json();
-            if (!result.success) return;
+            const text = await res.text();
+            let result;
+            try {
+                result = JSON.parse(text);
+            } catch (e) {
+                console.error("Non-JSON viewInvoice response:", text);
+                this.showToast("Failed to preview invoice: Invalid server response", "error");
+                return;
+            }
+
+            if (!result.success) {
+                this.showToast(result.message || 'Invoice details not available', 'error');
+                return;
+            }
 
             const inv = result.data;
             const container = document.getElementById('viewInvoiceModalContent');
@@ -1758,8 +1876,10 @@ const App = {
                 ? 'Both (Mr. Ibraheem & Mr. Fawas - 50/50 Split)' 
                 : ((inv.partner_assigned === 'ibraheem') ? 'Mr. Ibraheem' : 'Mr. Fawas');
 
+            const items = inv.items || [];
+
             container.innerHTML = `
-                <div style="border-bottom:1px solid var(--border); padding-bottom:16px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:flex-start;">
+                <div style="border-bottom:1px solid var(--border); padding-bottom:16px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
                     <div style="display:flex; align-items:flex-start; gap:14px;">
                         <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:4px 8px; box-shadow:0 1px 4px rgba(0,0,0,0.06); flex-shrink:0;">
                             <img src="assets/images/yaramay-logo.png" alt="YARAMAY" style="height:44px; width:auto; display:block;">
@@ -1773,12 +1893,12 @@ const App = {
                     </div>
                     <div style="text-align:right;">
                         <div>${this.renderStatusBadge(inv.status)}</div>
-                        <div style="font-size:12px; color:#64748b; margin-top:4px;">Date: ${inv.issue_date}</div>
-                        <div style="font-size:11px; color:#94a3b8;">Due: ${inv.due_date || 'N/A'}</div>
+                        <div style="font-size:12.5px; font-weight:700; color:#1e293b; margin-top:5px;">📅 Date: ${inv.issue_date}</div>
+                        <div style="font-size:11.5px; color:#64748b;">Due Date: ${inv.due_date || 'N/A'}</div>
                     </div>
                 </div>
 
-                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; background:var(--bg-muted); padding:14px; border-radius:8px; margin-bottom:16px;">
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:12px; background:var(--bg-muted); padding:14px; border-radius:8px; margin-bottom:16px;">
                     <div>
                         <span style="font-size:11px; color:#64748b; display:block;">TOTAL COST</span>
                         <strong style="font-size:16px; color:var(--primary);">${this.formatMoney(inv.grand_total)} ${this.currency}</strong>
@@ -1797,7 +1917,7 @@ const App = {
                 <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; background:#f8fafc; border:1px solid var(--border); padding:12px; border-radius:6px; margin-bottom:16px; font-size:12px;">
                     <div>
                         <span style="color:#64748b;">Assigned Account:</span> 
-                        <strong>${partnerText}</strong>
+                        <strong style="cursor:pointer;" onclick="App.openPartnerModal(${inv.id}, '${inv.partner_assigned}', '${this.escapeHtml(inv.invoice_number)}')" title="Click to edit">${partnerText} ✏️</strong>
                         <div style="font-size:11px; color:#64748b; margin-top:2px;">
                             Share: Ibraheem ₱${this.formatMoney(inv.ibraheem_share)} | Fawas ₱${this.formatMoney(inv.fawas_share)}
                         </div>
@@ -1818,7 +1938,7 @@ const App = {
                         </tr>
                     </thead>
                     <tbody>
-                        ${inv.items.map(it => `
+                        ${items.map(it => `
                             <tr>
                                 <td>
                                     <strong>${this.escapeHtml(it.item_name)}</strong>
@@ -1919,24 +2039,36 @@ const App = {
     },
 
     openNewProductModal() {
-        document.getElementById('productIdInput').value = '';
-        document.getElementById('productNameInput').value = '';
-        document.getElementById('productPriceInput').value = '';
-        document.getElementById('productTaxInput').value = '0';
-        document.getElementById('productDescInput').value = '';
-        document.getElementById('productModalTitle').innerText = this.t('product_modal_title_new');
+        const idInput = document.getElementById('productIdInput');
+        if (idInput) idInput.value = '';
+        const nameInput = document.getElementById('productNameInput');
+        if (nameInput) nameInput.value = '';
+        const priceInput = document.getElementById('productPriceInput');
+        if (priceInput) priceInput.value = '';
+        const taxInput = document.getElementById('productTaxInput');
+        if (taxInput) taxInput.value = '0';
+        const descInput = document.getElementById('productDescInput');
+        if (descInput) descInput.value = '';
+        const titleEl = document.getElementById('productModalTitle');
+        if (titleEl) titleEl.innerText = this.t('product_modal_title_new');
         this.openModal('productModal');
     },
 
     editProduct(id) {
         const p = this.products.find(x => x.id == id);
         if (!p) return;
-        document.getElementById('productIdInput').value = p.id;
-        document.getElementById('productNameInput').value = p.name;
-        document.getElementById('productPriceInput').value = p.price;
-        document.getElementById('productTaxInput').value = p.tax_rate;
-        document.getElementById('productDescInput').value = p.description || '';
-        document.getElementById('productModalTitle').innerText = this.t('product_modal_title_edit');
+        const idInput = document.getElementById('productIdInput');
+        if (idInput) idInput.value = p.id;
+        const nameInput = document.getElementById('productNameInput');
+        if (nameInput) nameInput.value = p.name;
+        const priceInput = document.getElementById('productPriceInput');
+        if (priceInput) priceInput.value = p.price;
+        const taxInput = document.getElementById('productTaxInput');
+        if (taxInput) taxInput.value = p.tax_rate;
+        const descInput = document.getElementById('productDescInput');
+        if (descInput) descInput.value = p.description || '';
+        const titleEl = document.getElementById('productModalTitle');
+        if (titleEl) titleEl.innerText = this.t('product_modal_title_edit');
         this.openModal('productModal');
     },
 
@@ -2006,13 +2138,84 @@ const App = {
         return `<span class="balance-pill-due">₱ ${this.formatMoney(num)} (Due)</span>`;
     },
 
-    renderPartnerBadge(partner, ibraheemShare = 0, fawasShare = 0) {
+    renderPartnerBadge(partner, ibraheemShare = 0, fawasShare = 0, invoiceId = 0, invoiceNumber = '') {
+        const isClickable = invoiceId > 0;
+        const clickAttr = isClickable 
+            ? `onclick="App.openPartnerModal(${invoiceId}, '${partner || 'both'}', '${this.escapeHtml(invoiceNumber)}'); event.stopPropagation();"` 
+            : '';
+        const titleAttr = isClickable 
+            ? `title="Click to change partner assignment (Mr. Ibraheem / Mr. Fawas / Both)"` 
+            : '';
+        const extraClass = isClickable ? 'partner-clickable-badge' : '';
+
         if (partner === 'ibraheem') {
-            return `<span class="badge badge-partner-ibraheem">👤 Mr. Ibraheem</span>`;
+            return `<span class="badge badge-partner-ibraheem ${extraClass}" ${clickAttr} ${titleAttr}>👤 Mr. Ibraheem ${isClickable ? '✏️' : ''}</span>`;
         } else if (partner === 'fawas') {
-            return `<span class="badge badge-partner-fawas">👤 Mr. Fawas</span>`;
+            return `<span class="badge badge-partner-fawas ${extraClass}" ${clickAttr} ${titleAttr}>👤 Mr. Fawas ${isClickable ? '✏️' : ''}</span>`;
         } else {
-            return `<span class="badge badge-partner-both">🤝 Both (50/50)</span>`;
+            return `<span class="badge badge-partner-both ${extraClass}" ${clickAttr} ${titleAttr}>🤝 Both (50/50) ${isClickable ? '✏️' : ''}</span>`;
+        }
+    },
+
+    openPartnerModal(invoiceId, currentPartner = 'both', invoiceNumber = '') {
+        const idInput = document.getElementById('quickPartnerInvoiceId');
+        if (idInput) idInput.value = invoiceId;
+        const numEl = document.getElementById('quickPartnerInvoiceNum');
+        if (numEl) numEl.textContent = invoiceNumber ? `#${invoiceNumber}` : `#${invoiceId}`;
+
+        const radios = document.querySelectorAll('input[name="quickPartnerChoice"]');
+        radios.forEach(r => {
+            r.checked = (r.value === currentPartner);
+        });
+        this.openModal('partnerModal');
+    },
+
+    async savePartnerAssignment() {
+        const invoiceId = document.getElementById('quickPartnerInvoiceId').value;
+        const choice = document.querySelector('input[name="quickPartnerChoice"]:checked')?.value || 'both';
+        const btn = document.getElementById('saveQuickPartnerBtn');
+
+        if (!invoiceId) return;
+
+        btn.disabled = true;
+        btn.innerHTML = 'Saving...';
+
+        try {
+            const res = await fetch('api.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'update_partner_assignment',
+                    id: invoiceId,
+                    partner_assigned: choice
+                })
+            });
+            const text = await res.text();
+            let result;
+            try {
+                result = JSON.parse(text);
+            } catch (e) {
+                throw new Error(text.substring(0, 100));
+            }
+
+            if (result.success) {
+                this.showToast('Partner assignment updated & shares recalculated!', 'success');
+                this.closeModal('partnerModal');
+                this.loadDashboard();
+                this.loadInvoices();
+                this.loadClients();
+                if (this.currentDossierClientId) {
+                    this.viewClientDossier(this.currentDossierClientId);
+                }
+            } else {
+                this.showToast(result.message || 'Failed to update partner assignment', 'error');
+            }
+        } catch (err) {
+            console.error('savePartnerAssignment error:', err);
+            this.showToast('Failed to update partner assignment', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = `<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>Save Assignment</span>`;
         }
     },
 
@@ -2104,17 +2307,30 @@ const App = {
     },
 
     openNewUserModal() {
-        document.getElementById('userModalTitle').innerText = 'Add New Admin User';
-        document.getElementById('userIdInput').value = '';
-        document.getElementById('userUsernameInput').value = '';
-        document.getElementById('userUsernameInput').disabled = false;
-        document.getElementById('userFullNameInput').value = '';
-        document.getElementById('userRoleSelect').value = 'admin';
-        document.getElementById('userEmailInput').value = '';
-        document.getElementById('userPasswordInput').value = '';
-        document.getElementById('userPasswordInput').required = true;
-        document.getElementById('userPasswordLabel').innerText = 'Password *';
-        document.getElementById('userPasswordHint').innerText = 'Minimum 6 characters.';
+        const titleEl = document.getElementById('userModalTitle');
+        if (titleEl) titleEl.innerText = 'Add New Admin User';
+        const idInput = document.getElementById('userIdInput');
+        if (idInput) idInput.value = '';
+        const userInput = document.getElementById('userUsernameInput');
+        if (userInput) {
+            userInput.value = '';
+            userInput.disabled = false;
+        }
+        const nameInput = document.getElementById('userFullNameInput');
+        if (nameInput) nameInput.value = '';
+        const roleSelect = document.getElementById('userRoleSelect');
+        if (roleSelect) roleSelect.value = 'admin';
+        const emailInput = document.getElementById('userEmailInput');
+        if (emailInput) emailInput.value = '';
+        const passInput = document.getElementById('userPasswordInput');
+        if (passInput) {
+            passInput.value = '';
+            passInput.required = true;
+        }
+        const passLabel = document.getElementById('userPasswordLabel');
+        if (passLabel) passLabel.innerText = 'Password *';
+        const passHint = document.getElementById('userPasswordHint');
+        if (passHint) passHint.innerText = 'Minimum 6 characters.';
         this.openModal('userModal');
     },
 
@@ -2122,17 +2338,30 @@ const App = {
         const user = this.users.find(u => u.id == id);
         if (!user) return;
 
-        document.getElementById('userModalTitle').innerText = `Edit Admin User: ${user.username}`;
-        document.getElementById('userIdInput').value = user.id;
-        document.getElementById('userUsernameInput').value = user.username;
-        document.getElementById('userUsernameInput').disabled = false;
-        document.getElementById('userFullNameInput').value = user.full_name;
-        document.getElementById('userRoleSelect').value = user.role;
-        document.getElementById('userEmailInput').value = user.email || '';
-        document.getElementById('userPasswordInput').value = '';
-        document.getElementById('userPasswordInput').required = false;
-        document.getElementById('userPasswordLabel').innerText = 'New Password (Optional)';
-        document.getElementById('userPasswordHint').innerText = 'Leave empty to keep existing password.';
+        const titleEl = document.getElementById('userModalTitle');
+        if (titleEl) titleEl.innerText = `Edit Admin User: ${user.username}`;
+        const idInput = document.getElementById('userIdInput');
+        if (idInput) idInput.value = user.id;
+        const userInput = document.getElementById('userUsernameInput');
+        if (userInput) {
+            userInput.value = user.username;
+            userInput.disabled = false;
+        }
+        const nameInput = document.getElementById('userFullNameInput');
+        if (nameInput) nameInput.value = user.full_name;
+        const roleSelect = document.getElementById('userRoleSelect');
+        if (roleSelect) roleSelect.value = user.role;
+        const emailInput = document.getElementById('userEmailInput');
+        if (emailInput) emailInput.value = user.email || '';
+        const passInput = document.getElementById('userPasswordInput');
+        if (passInput) {
+            passInput.value = '';
+            passInput.required = false;
+        }
+        const passLabel = document.getElementById('userPasswordLabel');
+        if (passLabel) passLabel.innerText = 'New Password (Optional)';
+        const passHint = document.getElementById('userPasswordHint');
+        if (passHint) passHint.innerText = 'Leave empty to keep existing password.';
         this.openModal('userModal');
     },
 

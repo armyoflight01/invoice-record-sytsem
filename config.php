@@ -73,7 +73,7 @@ function getDatabaseConnection(): PDO {
             return $pdo;
         } catch (Exception $e) {
             // Graceful fallback to SQLite if MySQL is stopped or in sandbox mode
-            error_log("[DATABASE] XAMPP MySQL connection to " . DB_HOST . ":" . DB_PORT . " failed (" . $e->getMessage() . "). Falling back to SQLite.");
+            @file_put_contents(DATA_DIR . DIRECTORY_SEPARATOR . 'db_fallback.log', date('Y-m-d H:i:s') . " MySQL failed: " . $e->getMessage() . PHP_EOL, FILE_APPEND);
         }
     }
 
@@ -97,28 +97,28 @@ function initDatabaseSchema(): void {
 
     // If using MySQL on XAMPP, auto-initialize from database.sql if empty
     if ($driver === 'mysql') {
-        $tableCount = (int)$db->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '" . DB_NAME . "'")->fetchColumn();
-        if ($tableCount === 0 && file_exists(__DIR__ . '/database.sql')) {
-            $sql = file_get_contents(__DIR__ . '/database.sql');
-            $queries = explode(";\n", $sql);
-            foreach ($queries as $q) {
-                $q = trim($q);
-                if (!empty($q)) {
-                    try {
-                        $db->exec($q);
-                    } catch (Exception $e) {}
+        try {
+            $tableCount = (int)$db->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '" . DB_NAME . "'")->fetchColumn();
+            if ($tableCount === 0 && file_exists(__DIR__ . '/database.sql')) {
+                $sql = file_get_contents(__DIR__ . '/database.sql');
+                $queries = explode(";\n", $sql);
+                foreach ($queries as $q) {
+                    $q = trim($q);
+                    if (!empty($q)) {
+                        try {
+                            $db->exec($q);
+                        } catch (Exception $e) {}
+                    }
                 }
             }
-        }
-        return;
-    }
-
-    // Tables schema for SQLite
-    $queries = [
-        "CREATE TABLE IF NOT EXISTS settings (
-            key TEXT PRIMARY KEY,
-            value TEXT
-        );",
+        } catch (Exception $e) {}
+    } else {
+        // Tables schema for SQLite
+        $queries = [
+            "CREATE TABLE IF NOT EXISTS settings (
+                key TEXT PRIMARY KEY,
+                value TEXT
+            );",
 
         "CREATE TABLE IF NOT EXISTS clients (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -219,13 +219,14 @@ function initDatabaseSchema(): void {
         );"
     ];
 
-    foreach ($queries as $q) {
-        $db->exec($q);
-    }
+        foreach ($queries as $q) {
+            $db->exec($q);
+        }
 
-    $db->exec("CREATE INDEX IF NOT EXISTS idx_login_attempts_ip ON login_attempts(ip_address, attempt_time);");
-    $db->exec("CREATE INDEX IF NOT EXISTS idx_rate_limits_ip ON rate_limits(ip_address, endpoint, request_time);");
-    $db->exec("CREATE INDEX IF NOT EXISTS idx_security_logs_created ON security_logs(created_at);");
+        $db->exec("CREATE INDEX IF NOT EXISTS idx_login_attempts_ip ON login_attempts(ip_address, attempt_time);");
+        $db->exec("CREATE INDEX IF NOT EXISTS idx_rate_limits_ip ON rate_limits(ip_address, endpoint, request_time);");
+        $db->exec("CREATE INDEX IF NOT EXISTS idx_security_logs_created ON security_logs(created_at);");
+    }
 
     // Ensure columns exist if migrated from older version
     ensureColumnExists($db, 'clients', 'contact_person', 'TEXT');
@@ -279,22 +280,35 @@ function initDatabaseSchema(): void {
     }
 
     // Check if partner shares need calculation on existing invoices
-    $db->exec("
-        UPDATE invoices SET 
-            partner_assigned = 'both',
-            ibraheem_share = ROUND(paid_amount / 2, 2),
-            fawas_share = ROUND(paid_amount / 2, 2)
-        WHERE (partner_assigned = 'both' OR partner_assigned IS NULL OR partner_assigned = '') 
-          AND id != 3 
-          AND (ibraheem_share = 0 OR ibraheem_share IS NULL);
-    ");
-    $db->exec("
-        UPDATE invoices SET 
-            partner_assigned = 'ibraheem',
-            ibraheem_share = paid_amount,
-            fawas_share = 0
-        WHERE id = 3;
-    ");
+    try {
+        $db->exec("
+            UPDATE invoices SET 
+                partner_assigned = 'both',
+                ibraheem_share = ROUND(paid_amount / 2, 2),
+                fawas_share = ROUND(paid_amount / 2, 2)
+            WHERE (partner_assigned = 'both' OR partner_assigned IS NULL OR partner_assigned = '') 
+              AND (ibraheem_share = 0 OR ibraheem_share IS NULL)
+              AND paid_amount > 0;
+        ");
+        $db->exec("
+            UPDATE invoices SET 
+                partner_assigned = 'ibraheem',
+                ibraheem_share = paid_amount,
+                fawas_share = 0
+            WHERE partner_assigned = 'ibraheem'
+              AND (ibraheem_share = 0 OR ibraheem_share IS NULL)
+              AND paid_amount > 0;
+        ");
+        $db->exec("
+            UPDATE invoices SET 
+                partner_assigned = 'fawas',
+                ibraheem_share = 0,
+                fawas_share = paid_amount
+            WHERE partner_assigned = 'fawas'
+              AND (fawas_share = 0 OR fawas_share IS NULL)
+              AND paid_amount > 0;
+        ");
+    } catch (Exception $e) {}
 
     // Check installment fields on existing invoices
     $db->exec("
@@ -388,11 +402,13 @@ function jsonSuccess($data = [], $message = 'Success') {
 }
 
 function jsonError($message = 'An error occurred while processing request', $code = 400) {
-    http_response_code($code);
+    // Keep HTTP 200 so free-host reverse proxies (Kesug/InfinityFree) do not replace JSON with HTML error pages
+    http_response_code(200);
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode([
         'success' => false,
-        'message' => $message
+        'message' => $message,
+        'code'    => $code
     ], JSON_UNESCAPED_UNICODE);
     exit;
 }

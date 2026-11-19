@@ -716,15 +716,11 @@ function copyGcashNumber() {
     });
 }
 
+let compressedReceiptBlob = null;
+
 function handleReceiptSelect(e) {
     const file = e.target.files[0];
     if (!file) return;
-
-    if (file.size > 8 * 1024 * 1024) {
-        alert('File size exceeds 8MB limit. Please select a smaller screenshot.');
-        e.target.value = '';
-        return;
-    }
 
     const previewImg = document.getElementById('receiptPreviewImg');
     const previewContainer = document.getElementById('receiptPreviewContainer');
@@ -733,16 +729,57 @@ function handleReceiptSelect(e) {
     const fileSize = document.getElementById('receiptFileSize');
 
     fileName.textContent = file.name;
-    fileSize.textContent = (file.size / 1024).toFixed(1) + ' KB';
+    fileSize.textContent = 'Optimizing image...';
 
     if (file.type.startsWith('image/')) {
         const reader = new FileReader();
         reader.onload = function(evt) {
-            previewImg.src = evt.target.result;
-            previewImg.style.display = 'block';
+            const img = new Image();
+            img.onload = function() {
+                try {
+                    const maxDim = 1200;
+                    let width = img.width;
+                    let height = img.height;
+                    if (width > maxDim || height > maxDim) {
+                        if (width > height) {
+                            height = Math.round((height * maxDim) / width);
+                            width = maxDim;
+                        } else {
+                            width = Math.round((width * maxDim) / height);
+                            height = maxDim;
+                        }
+                    }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    canvas.toBlob((blob) => {
+                        if (blob && blob.size < file.size) {
+                            compressedReceiptBlob = blob;
+                            fileSize.textContent = (blob.size / 1024).toFixed(1) + ' KB (Optimized)';
+                            previewImg.src = URL.createObjectURL(blob);
+                        } else {
+                            compressedReceiptBlob = file;
+                            fileSize.textContent = (file.size / 1024).toFixed(1) + ' KB';
+                            previewImg.src = evt.target.result;
+                        }
+                        previewImg.style.display = 'block';
+                    }, 'image/jpeg', 0.82);
+                } catch (cErr) {
+                    compressedReceiptBlob = file;
+                    fileSize.textContent = (file.size / 1024).toFixed(1) + ' KB';
+                    previewImg.src = evt.target.result;
+                    previewImg.style.display = 'block';
+                }
+            };
+            img.src = evt.target.result;
         };
         reader.readAsDataURL(file);
     } else {
+        compressedReceiptBlob = file;
+        fileSize.textContent = (file.size / 1024).toFixed(1) + ' KB';
         previewImg.style.display = 'none';
     }
 
@@ -754,6 +791,7 @@ function removeReceipt(e) {
     if (e) e.stopPropagation();
     const input = document.getElementById('cPaymentReceipt');
     input.value = '';
+    compressedReceiptBlob = null;
     document.getElementById('receiptPreviewImg').src = '';
     document.getElementById('receiptPreviewContainer').style.display = 'none';
     document.getElementById('uploadPrompt').style.display = 'block';
@@ -847,6 +885,11 @@ async function submitClientPortalForm(e) {
     const formData = new FormData(form);
     formData.append('action', 'submit_client_invoice');
 
+    // Attach optimized compressed receipt if available
+    if (compressedReceiptBlob) {
+        formData.set('payment_receipt', compressedReceiptBlob, 'gcash_receipt.jpg');
+    }
+
     try {
         const res = await fetch('api.php', {
             method: 'POST',
@@ -859,7 +902,7 @@ async function submitClientPortalForm(e) {
             data = JSON.parse(text);
         } catch (jsonErr) {
             console.error('Non-JSON server response:', text);
-            throw new Error('Server returned unexpected output: ' + text.substring(0, 140));
+            throw new Error('Server response: ' + (text ? text.replace(/<[^>]+>/g, ' ').substring(0, 160) : 'Empty response'));
         }
 
         if (data.success) {

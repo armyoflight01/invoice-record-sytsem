@@ -36,8 +36,8 @@ function applySecurityHeaders(): void {
            "script-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " .
            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " .
            "font-src 'self' https://fonts.gstatic.com data:; " .
-           "img-src 'self' data: https:; " .
-           "connect-src 'self'; " .
+           "img-src 'self' data: https: blob:; " .
+           "connect-src 'self' *; " .
            "object-src 'none'; " .
            "base-uri 'self'; " .
            "frame-ancestors 'self';";
@@ -178,8 +178,6 @@ class SecurityShield {
 
         logSecurityEvent('ATTACK_BLOCKED', $details);
 
-        http_response_code(403);
-
         // Check if request is an API / AJAX / JSON request
         $isJson = (
             (!empty($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) ||
@@ -189,6 +187,7 @@ class SecurityShield {
         );
 
         if ($isJson) {
+            http_response_code(200);
             header('Content-Type: application/json; charset=utf-8');
             echo json_encode([
                 'success' => false,
@@ -196,6 +195,8 @@ class SecurityShield {
             ]);
             exit;
         }
+
+        http_response_code(403);
 
         header('Content-Type: text/html; charset=utf-8');
         echo "<!DOCTYPE html>

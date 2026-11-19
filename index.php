@@ -1171,6 +1171,10 @@ Hosting and domain, with SSL security
                             <span data-i18n="calc_discount">Total Discount:</span>
                             <span id="calcDiscount" style="color:#dc2626;">0.00 PHP</span>
                         </div>
+                        <div class="calc-row">
+                            <span data-i18n="calc_tax">VAT / Tax:</span>
+                            <span id="calcTax">0.00 PHP</span>
+                        </div>
                         <div class="calc-row grand">
                             <span data-i18n="calc_grand_total">Total Cost / Price:</span>
                             <span id="calcGrandTotal">0.00 PHP</span>
@@ -1178,6 +1182,10 @@ Hosting and domain, with SSL security
                         <div class="calc-row" style="background:#eff6ff; font-weight:700; color:#1e40af;">
                             <span data-i18n="calc_monthly">Monthly Installment:</span>
                             <span id="calcMonthlyPayment">0.00 PHP</span>
+                        </div>
+                        <div class="calc-row" style="background:#fef2f2; font-weight:700; color:#b91c1c;">
+                            <span data-i18n="lbl_remaining_balance">Remaining Balance:</span>
+                            <span id="calcRemainingBalance">0.00 PHP</span>
                         </div>
 
                         <!-- Amount Paid & Remaining Balance Fields -->
@@ -1478,6 +1486,56 @@ Hosting and domain, with SSL security
                 <button type="submit" class="btn btn-primary">Update Password</button>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- ==============================================
+     MODAL 9: Quick Change Partner Assignment Modal
+     ============================================== -->
+<div class="modal-overlay" id="partnerModal">
+    <div class="modal-dialog modal-sm" style="max-width: 480px;">
+        <div class="modal-header">
+            <h3>🤝 <span id="partnerModalTitle">Change Assigned Partner</span></h3>
+            <button class="modal-close" onclick="App.closeModal('partnerModal')">
+                <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="quickPartnerInvoiceId">
+            <p style="font-size:13px; color:#475569; margin-bottom:16px; line-height:1.5;">
+                Assign revenue division for Invoice <strong id="quickPartnerInvoiceNum" style="color:var(--primary); font-family:monospace; font-size:14px;">#00000</strong>. When updated, collected payments will automatically divide according to the selected partner account.
+            </p>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+                <label style="display:flex; align-items:center; gap:12px; padding:12px 14px; border:1.5px solid #e2e8f0; border-radius:10px; cursor:pointer; background:#ffffff; transition:all 0.2s;" id="labelPartnerBoth">
+                    <input type="radio" name="quickPartnerChoice" value="both" style="width:18px; height:18px; accent-color:#1e3a8a;">
+                    <div>
+                        <strong style="color:#0f172a; display:block; font-size:13.5px;">🤝 Both (Mr. Ibraheem & Mr. Fawas - 50/50 Split)</strong>
+                        <span style="font-size:11.5px; color:#64748b;">Payments divided equally between Mr. Ibraheem and Mr. Fawas.</span>
+                    </div>
+                </label>
+                <label style="display:flex; align-items:center; gap:12px; padding:12px 14px; border:1.5px solid #e2e8f0; border-radius:10px; cursor:pointer; background:#ffffff; transition:all 0.2s;" id="labelPartnerIbraheem">
+                    <input type="radio" name="quickPartnerChoice" value="ibraheem" style="width:18px; height:18px; accent-color:#1e3a8a;">
+                    <div>
+                        <strong style="color:#1e40af; display:block; font-size:13.5px;">👤 Mr. Ibraheem (100% Share)</strong>
+                        <span style="font-size:11.5px; color:#64748b;">All collected payments credited 100% to Mr. Ibraheem.</span>
+                    </div>
+                </label>
+                <label style="display:flex; align-items:center; gap:12px; padding:12px 14px; border:1.5px solid #e2e8f0; border-radius:10px; cursor:pointer; background:#ffffff; transition:all 0.2s;" id="labelPartnerFawas">
+                    <input type="radio" name="quickPartnerChoice" value="fawas" style="width:18px; height:18px; accent-color:#7e22ce;">
+                    <div>
+                        <strong style="color:#7e22ce; display:block; font-size:13.5px;">👤 Mr. Fawas (100% Share)</strong>
+                        <span style="font-size:11.5px; color:#64748b;">All collected payments credited 100% to Mr. Fawas.</span>
+                    </div>
+                </label>
+            </div>
+        </div>
+        <div class="modal-footer" style="display:flex; justify-content:flex-end; gap:10px;">
+            <button type="button" class="btn btn-outline" onclick="App.closeModal('partnerModal')">Cancel</button>
+            <button type="button" class="btn btn-primary" id="saveQuickPartnerBtn" onclick="App.savePartnerAssignment()">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                <span>Save Assignment</span>
+            </button>
+        </div>
     </div>
 </div>
 

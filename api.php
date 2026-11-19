@@ -245,8 +245,29 @@ try {
             $balanceTotal = (float)$db->query("SELECT COALESCE(SUM(remaining_balance), 0) FROM invoices WHERE status != 'cancelled'")->fetchColumn();
             
             // Partner Shares Division (Mr. Ibraheem & Mr. Fawas)
-            $ibraheemTotal = (float)$db->query("SELECT COALESCE(SUM(ibraheem_share), 0) FROM invoices WHERE status != 'cancelled'")->fetchColumn();
-            $fawasTotal = (float)$db->query("SELECT COALESCE(SUM(fawas_share), 0) FROM invoices WHERE status != 'cancelled'")->fetchColumn();
+            // Dynamically calculate from paid_amount so partner accounts NEVER show 0.00 if payments exist!
+            $sharesStmt = $db->query("
+                SELECT 
+                    COALESCE(SUM(
+                        CASE 
+                            WHEN partner_assigned = 'ibraheem' THEN paid_amount
+                            WHEN partner_assigned = 'fawas' THEN 0
+                            ELSE ROUND(paid_amount / 2, 2)
+                        END
+                    ), 0) as ibraheem_total,
+                    COALESCE(SUM(
+                        CASE 
+                            WHEN partner_assigned = 'fawas' THEN paid_amount
+                            WHEN partner_assigned = 'ibraheem' THEN 0
+                            ELSE ROUND(paid_amount / 2, 2)
+                        END
+                    ), 0) as fawas_total
+                FROM invoices 
+                WHERE status != 'cancelled'
+            ");
+            $sharesRow = $sharesStmt->fetch();
+            $ibraheemTotal = (float)($sharesRow['ibraheem_total'] ?? 0);
+            $fawasTotal = (float)($sharesRow['fawas_total'] ?? 0);
 
             $invoiceCount = (int)$db->query("SELECT COUNT(*) FROM invoices")->fetchColumn();
             $clientCount = (int)$db->query("SELECT COUNT(*) FROM clients")->fetchColumn();
@@ -281,7 +302,7 @@ try {
             ");
             $recentInvoices = $recentStmt->fetchAll();
 
-            // Client financial summary for Admin Dashboard
+            // Client financial summary for Admin Dashboard - fully compatible with MySQL ONLY_FULL_GROUP_BY & SQLite
             $clientSummaryStmt = $db->query("
                 SELECT c.id, c.name, c.contact_person, c.phone, c.address,
                        COUNT(i.id) as invoice_count,
@@ -290,7 +311,7 @@ try {
                        COALESCE(SUM(CASE WHEN i.status != 'cancelled' THEN i.remaining_balance ELSE 0 END), 0) as remaining_balance
                 FROM clients c
                 LEFT JOIN invoices i ON c.id = i.client_id
-                GROUP BY c.id
+                GROUP BY c.id, c.name, c.contact_person, c.phone, c.address
                 ORDER BY remaining_balance DESC, total_price DESC
             ");
             $clientsSummary = $clientSummaryStmt->fetchAll();
@@ -403,14 +424,22 @@ try {
 
             if (!$invoice) jsonError('Invoice not found', 404);
 
+            // Clean date formats (YYYY-MM-DD) for HTML5 date inputs
+            if (!empty($invoice['issue_date'])) {
+                $invoice['issue_date'] = substr($invoice['issue_date'], 0, 10);
+            }
+            if (!empty($invoice['due_date'])) {
+                $invoice['due_date'] = substr($invoice['due_date'], 0, 10);
+            }
+
             // Fetch items
             $itemStmt = $db->prepare("SELECT * FROM invoice_items WHERE invoice_id = ? ORDER BY id ASC");
             $itemStmt->execute([$id]);
-            $invoice['items'] = $itemStmt->fetchAll();
+            $invoice['items'] = $itemStmt->fetchAll() ?: [];
 
             // Settings
             $settingsList = $db->query("SELECT `key`, value FROM settings")->fetchAll(PDO::FETCH_KEY_PAIR);
-            $invoice['settings'] = $settingsList;
+            $invoice['settings'] = $settingsList ?: [];
 
             jsonSuccess($invoice);
             break;
@@ -852,6 +881,52 @@ try {
             }
 
             jsonSuccess(null, 'Invoice status updated successfully');
+            break;
+
+        // ==========================================
+        // 7b. Quick Click-to-Edit Partner Assignment
+        // ==========================================
+        case 'update_partner_assignment':
+            $id = (int)($_POST['id'] ?? $_POST['invoice_id'] ?? 0);
+            $partner = trim($_POST['partner_assigned'] ?? 'both');
+            if (!in_array($partner, ['ibraheem', 'fawas', 'both'])) {
+                $partner = 'both';
+            }
+
+            if (!$id) jsonError('Invoice ID is required');
+
+            $stmt = $db->prepare("SELECT * FROM invoices WHERE id = ?");
+            $stmt->execute([$id]);
+            $inv = $stmt->fetch();
+            if (!$inv) jsonError('Invoice not found');
+
+            $paid = (float)$inv['paid_amount'];
+            if ($partner === 'ibraheem') {
+                $ibraheemShare = $paid;
+                $fawasShare = 0.00;
+            } elseif ($partner === 'fawas') {
+                $ibraheemShare = 0.00;
+                $fawasShare = $paid;
+            } else {
+                $ibraheemShare = round($paid / 2, 2);
+                $fawasShare = round($paid / 2, 2);
+            }
+
+            $update = $db->prepare("
+                UPDATE invoices SET 
+                    partner_assigned = ?,
+                    ibraheem_share = ?,
+                    fawas_share = ?
+                WHERE id = ?
+            ");
+            $update->execute([$partner, $ibraheemShare, $fawasShare, $id]);
+
+            jsonSuccess([
+                'id'               => $id,
+                'partner_assigned' => $partner,
+                'ibraheem_share'   => $ibraheemShare,
+                'fawas_share'      => $fawasShare
+            ], 'Partner assignment updated successfully');
             break;
 
         // ==========================================
