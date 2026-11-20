@@ -9,37 +9,89 @@ error_reporting(E_ALL);
 ini_set('display_errors', '0');
 
 // ==========================================
-// Database Configuration (XAMPP MySQL & SQLite)
+// Database Configuration (Env / Local Override / XAMPP / Cloud)
 // ==========================================
-// Set DB_DRIVER to 'mysql' to connect to XAMPP MySQL localhost (Default).
-// Set DB_DRIVER to 'sqlite' for portable file-based DB at data/invoices.db.
-// If MySQL is selected but XAMPP MySQL service is stopped, it gracefully falls back to SQLite.
-define('DB_DRIVER', 'mysql'); 
+// Optional local override file for shared hosting (InfinityFree, cPanel, Hostinger).
+// Copy config.local.example.php to config.local.php and fill in your host credentials.
+if (file_exists(__DIR__ . DIRECTORY_SEPARATOR . 'config.local.php')) {
+    require_once __DIR__ . DIRECTORY_SEPARATOR . 'config.local.php';
+}
 
-// XAMPP Localhost MySQL Credentials:
-define('DB_HOST', '127.0.0.1'); // 'localhost' or '127.0.0.1'
-define('DB_PORT', '3306');
-define('DB_NAME', 'yaramay_invoices');
-define('DB_USER', 'root');
-define('DB_PASS', '');
-define('DB_CHARSET', 'utf8mb4');
+// Parse MYSQL_URL / DATABASE_URL if provided by cloud hosts (e.g., Railway, Aiven, PlanetScale)
+$_dbUrlRaw = getenv('MYSQL_URL') ?: getenv('DATABASE_URL') ?: '';
+$_dbUrlParts = (!empty($_dbUrlRaw) && strpos($_dbUrlRaw, 'mysql') === 0) ? parse_url($_dbUrlRaw) : [];
 
-define('DATA_DIR', __DIR__ . DIRECTORY_SEPARATOR . 'data');
+// Set DB_DRIVER to 'mysql' (default for XAMPP & MySQL hosts) or 'sqlite' (portable file-based DB).
+// If MySQL is unavailable, it gracefully falls back to SQLite.
+if (!defined('DB_DRIVER')) {
+    $_envDriver = getenv('DB_DRIVER');
+    if ($_envDriver !== false && $_envDriver !== '') {
+        define('DB_DRIVER', strtolower(trim($_envDriver)));
+    } else {
+        define('DB_DRIVER', 'mysql');
+    }
+}
+
+if (!defined('DB_HOST')) {
+    define('DB_HOST', getenv('DB_HOST') ?: getenv('MYSQLHOST') ?: ($_dbUrlParts['host'] ?? '127.0.0.1'));
+}
+if (!defined('DB_PORT')) {
+    define('DB_PORT', (string)(getenv('DB_PORT') ?: getenv('MYSQLPORT') ?: ($_dbUrlParts['port'] ?? '3306')));
+}
+if (!defined('DB_NAME')) {
+    $_urlPath = isset($_dbUrlParts['path']) ? ltrim($_dbUrlParts['path'], '/') : '';
+    define('DB_NAME', getenv('DB_NAME') ?: getenv('MYSQLDATABASE') ?: ($_urlPath !== '' ? $_urlPath : 'yaramay_invoices'));
+}
+if (!defined('DB_USER')) {
+    define('DB_USER', getenv('DB_USER') ?: getenv('MYSQLUSER') ?: ($_dbUrlParts['user'] ?? 'root'));
+}
+if (!defined('DB_PASS')) {
+    $_envPass = getenv('DB_PASS');
+    if ($_envPass === false) {
+        $_envPass = getenv('MYSQLPASSWORD');
+    }
+    define('DB_PASS', $_envPass !== false ? $_envPass : (isset($_dbUrlParts['pass']) ? urldecode($_dbUrlParts['pass']) : ''));
+}
+if (!defined('DB_CHARSET')) {
+    define('DB_CHARSET', 'utf8mb4');
+}
+
+$_customDataDir = getenv('DATA_DIR');
+define('DATA_DIR', (!empty($_customDataDir)) ? rtrim($_customDataDir, "/\\") : (__DIR__ . DIRECTORY_SEPARATOR . 'data'));
 define('SESSION_DIR', DATA_DIR . DIRECTORY_SEPARATOR . 'sessions');
 define('DB_FILE', DATA_DIR . DIRECTORY_SEPARATOR . 'invoices.db');
 
 if (!file_exists(DATA_DIR)) {
-    @mkdir(DATA_DIR, 0777, true);
+    @mkdir(DATA_DIR, 0775, true);
 }
 if (!file_exists(SESSION_DIR)) {
-    @mkdir(SESSION_DIR, 0777, true);
+    @mkdir(SESSION_DIR, 0775, true);
 }
 
-if (is_dir(SESSION_DIR)) {
+// If a custom persistent DATA_DIR is mounted and empty, copy the pre-seeded SQLite DB into it
+$_bundledDb = __DIR__ . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'invoices.db';
+if (DB_FILE !== $_bundledDb && !file_exists(DB_FILE) && file_exists($_bundledDb)) {
+    @copy($_bundledDb, DB_FILE);
+}
+
+if (is_dir(SESSION_DIR) && is_writable(SESSION_DIR)) {
     @session_save_path(SESSION_DIR);
 }
 
 if (session_status() === PHP_SESSION_NONE) {
+    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https')
+        || (($_SERVER['SERVER_PORT'] ?? '') == 443);
+
+    if (PHP_VERSION_ID >= 70300) {
+        @session_set_cookie_params([
+            'lifetime' => 0,
+            'path'     => '/',
+            'secure'   => $isHttps,
+            'httponly' => true,
+            'samesite' => 'Lax'
+        ]);
+    }
     @session_start();
 }
 
@@ -50,29 +102,45 @@ function getDatabaseConnection(): PDO {
         return $pdo;
     }
 
-    // 1. Try XAMPP MySQL Connection
+    // 1. Try MySQL Connection (Cloud / Shared Hosting / XAMPP)
     if (DB_DRIVER === 'mysql') {
+        $isLocal = in_array(DB_HOST, ['127.0.0.1', 'localhost'], true);
+        $timeout = $isLocal ? 2 : 5;
+        $pdoOpts = [
+            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES   => false,
+            PDO::ATTR_TIMEOUT            => $timeout
+        ];
+
+        $dsnDb = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET;
+
         try {
-            $dsnServer = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";charset=" . DB_CHARSET;
-            $tmpPdo = new PDO($dsnServer, DB_USER, DB_PASS, [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_TIMEOUT => 2
-            ]);
-
-            // Auto create database if not exists
-            $tmpPdo->exec("CREATE DATABASE IF NOT EXISTS `" . DB_NAME . "` CHARACTER SET " . DB_CHARSET . " COLLATE utf8mb4_unicode_ci;");
-
-            // Connect to database
-            $dsnDb = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET;
-            $pdo = new PDO($dsnDb, DB_USER, DB_PASS, [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_EMULATE_PREPARES => false
-            ]);
+            // Connect directly to the target database first (works on InfinityFree, cPanel, Railway, Aiven without CREATE DATABASE privileges)
+            $pdo = new PDO($dsnDb, DB_USER, DB_PASS, $pdoOpts);
             $pdo->exec("SET NAMES " . DB_CHARSET . ";");
             return $pdo;
+        } catch (PDOException $e) {
+            // If database does not exist yet (MySQL error 1049, e.g. fresh local XAMPP), create it and reconnect
+            $errMsg = $e->getMessage();
+            if (strpos($errMsg, '1049') !== false || stripos($errMsg, 'Unknown database') !== false) {
+                try {
+                    $dsnServer = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";charset=" . DB_CHARSET;
+                    $tmpPdo = new PDO($dsnServer, DB_USER, DB_PASS, [
+                        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                        PDO::ATTR_TIMEOUT => $timeout
+                    ]);
+                    $tmpPdo->exec("CREATE DATABASE IF NOT EXISTS `" . DB_NAME . "` CHARACTER SET " . DB_CHARSET . " COLLATE utf8mb4_unicode_ci;");
+                    $pdo = new PDO($dsnDb, DB_USER, DB_PASS, $pdoOpts);
+                    $pdo->exec("SET NAMES " . DB_CHARSET . ";");
+                    return $pdo;
+                } catch (Exception $createEx) {
+                    $e = $createEx;
+                }
+            }
+            // Graceful fallback to SQLite if MySQL is stopped or unreachable
+            @file_put_contents(DATA_DIR . DIRECTORY_SEPARATOR . 'db_fallback.log', date('Y-m-d H:i:s') . " MySQL failed: " . $e->getMessage() . PHP_EOL, FILE_APPEND);
         } catch (Exception $e) {
-            // Graceful fallback to SQLite if MySQL is stopped or in sandbox mode
             @file_put_contents(DATA_DIR . DIRECTORY_SEPARATOR . 'db_fallback.log', date('Y-m-d H:i:s') . " MySQL failed: " . $e->getMessage() . PHP_EOL, FILE_APPEND);
         }
     }
@@ -95,12 +163,12 @@ function initDatabaseSchema(): void {
     $db = getDatabaseConnection();
     $driver = $db->getAttribute(PDO::ATTR_DRIVER_NAME);
 
-    // If using MySQL on XAMPP, auto-initialize from database.sql if empty
+    // If using MySQL (XAMPP / Cloud / Shared Host), auto-initialize from database.sql if empty
     if ($driver === 'mysql') {
         try {
-            $tableCount = (int)$db->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '" . DB_NAME . "'")->fetchColumn();
+            $tableCount = (int)$db->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE()")->fetchColumn();
             if ($tableCount === 0 && file_exists(__DIR__ . '/database.sql')) {
-                $sql = file_get_contents(__DIR__ . '/database.sql');
+                $sql = str_replace(["\r\n", "\r"], "\n", file_get_contents(__DIR__ . '/database.sql'));
                 $queries = explode(";\n", $sql);
                 foreach ($queries as $q) {
                     $q = trim($q);

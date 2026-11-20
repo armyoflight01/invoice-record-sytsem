@@ -2,3 +2,7 @@
 data/sessions/*
 !data/sessions/.gitkeep
 *.log
+
+# Ignore local hosting credentials
+config.local.php
+.env
