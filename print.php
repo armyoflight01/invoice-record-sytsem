@@ -473,6 +473,53 @@ $statusInfo = $statusLabels[$invoice['status']] ?? ['text' => strtoupper($invoic
             text-decoration: underline;
         }
 
+        /* Responsive Mobile & Tablet Preview */
+        @media screen and (max-width: 820px) {
+            .no-print-bar {
+                padding: 10px 14px;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            .bar-left, .bar-right {
+                flex-wrap: wrap;
+                gap: 6px;
+            }
+            .btn-action {
+                padding: 7px 12px;
+                font-size: 12px;
+            }
+            .invoice-page {
+                width: calc(100% - 20px);
+                min-height: auto;
+                margin: 12px auto;
+                padding: 18px 14px;
+            }
+            .invoice-watermark {
+                width: 240px;
+            }
+            .invoice-meta-row {
+                flex-direction: column;
+                gap: 14px;
+            }
+            .bill-to-box,
+            .invoice-details-box {
+                max-width: 100%;
+                width: 100%;
+                text-align: <?= $isEn ? 'left' : 'right' ?>;
+            }
+            .summary-table {
+                width: 100%;
+            }
+            .suggestions-box {
+                max-width: 100%;
+            }
+            .invoice-table th,
+            .invoice-table td {
+                padding: 6px;
+                font-size: 11px;
+            }
+        }
+
         /* Print Media Styles */
         @media print {
             body {

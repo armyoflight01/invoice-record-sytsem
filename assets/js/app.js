@@ -883,7 +883,7 @@ const App = {
                                 <td>${this.renderStatusBadge(inv.status)}</td>
                                 <td>
                                     <div class="actions-cell">
-                                        <a href="print.php?id=${inv.id}&lang=${this.lang}" target="_blank" class="btn btn-sm btn-outline" title="${this.t('btn_print_official')}">
+                                        <a href="${this.getPrintUrl(inv.id)}" target="_blank" class="btn btn-sm btn-outline" title="${this.t('btn_print_official')}">
                                             <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
                                         </a>
                                         <button class="btn btn-sm btn-light" onclick="App.openQuickPaymentModal(${inv.id})" title="${this.t('btn_record_payment')}">
@@ -974,7 +974,7 @@ const App = {
                 <td>${this.renderStatusBadge(inv.status)}</td>
                 <td>
                     <div class="actions-cell">
-                        <a href="print.php?id=${inv.id}&lang=${this.lang}" target="_blank" class="btn btn-sm btn-primary" title="${this.t('btn_print_official')}">
+                        <a href="${this.getPrintUrl(inv.id)}" target="_blank" class="btn btn-sm btn-primary" title="${this.t('btn_print_official')}">
                             <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
                             <span>${this.t('btn_print')}</span>
                         </a>
@@ -1222,7 +1222,7 @@ const App = {
                                             <td>${this.renderStatusBadge(inv.status)}</td>
                                             <td>
                                                 <div class="actions-cell">
-                                                    <a href="print.php?id=${inv.id}&lang=${this.lang}" target="_blank" class="btn btn-sm btn-primary">🖨️ ${this.t('btn_print')}</a>
+                                                    <a href="${this.getPrintUrl(inv.id)}" target="_blank" class="btn btn-sm btn-primary">🖨️ ${this.t('btn_print')}</a>
                                                     <button class="btn btn-sm btn-outline" onclick="App.openQuickPaymentModal(${inv.id})">💳 Pay</button>
                                                 </div>
                                             </td>
@@ -1346,7 +1346,7 @@ const App = {
                     : ((data.partner_assigned === 'ibraheem') ? `Mr. Ibraheem` : `Mr. Fawas`);
                 document.getElementById('portalSuccessPartner').innerText = partnerText;
 
-                document.getElementById('portalSuccessPrintBtn').href = `print.php?id=${data.invoice_id}&lang=${this.lang}`;
+                document.getElementById('portalSuccessPrintBtn').href = this.getPrintUrl(data.invoice_id);
 
                 this.showToast(result.message);
                 this.loadDashboard();
@@ -1978,8 +1978,8 @@ const App = {
                     </div>
                 ` : ''}
 
-                <div style="display:flex; justify-content:flex-end; gap:10px;">
-                    <a href="print.php?id=${inv.id}&lang=${this.lang}" target="_blank" class="btn btn-primary">
+                <div style="display:flex; justify-content:flex-end; flex-wrap:wrap; gap:10px;">
+                    <a href="${this.getPrintUrl(inv.id)}" target="_blank" class="btn btn-primary">
                         🖨️ ${this.t('btn_print_official')}
                     </a>
                     <button class="btn btn-outline" onclick="App.openQuickPaymentModal(${inv.id})">
@@ -2225,6 +2225,11 @@ const App = {
             return `<div class="installment-pill">📅 ${months} Mos (₱${this.formatMoney(inv.monthly_payment)}/mo)</div>`;
         }
         return `<div class="installment-pill" style="background:#e0f2fe; color:#0369a1;">Full Payment</div>`;
+    },
+
+    getPrintUrl(id, lang) {
+        const page = window.YARAMAY_STATIC_MODE ? 'print.html' : 'print.php';
+        return `${page}?id=${id}&lang=${lang || this.lang}`;
     },
 
     formatMoney(amount) {

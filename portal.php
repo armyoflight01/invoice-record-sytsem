@@ -357,20 +357,40 @@ $gcashName = $settings['gcash_account_name'] ?? 'Ferdenand Sabado';
         }
 
         @media (max-width: 768px) {
+            .portal-navbar {
+                padding: 12px 16px;
+            }
+            .portal-navbar-inner {
+                flex-wrap: wrap;
+                gap: 12px;
+            }
+            .portal-container {
+                margin: 18px auto;
+                padding: 0 14px;
+            }
+            .portal-card {
+                padding: 18px 16px;
+            }
             .form-row-grid {
                 grid-template-columns: 1fr;
             }
             .portal-hero {
                 flex-direction: column;
                 align-items: flex-start;
+                padding: 18px;
             }
             .gcash-badge-card {
                 width: 100%;
+                min-width: 0;
             }
             .formula-card {
                 flex-direction: column;
                 align-items: flex-start;
                 gap: 6px;
+            }
+            .btn-submit-portal {
+                width: 100%;
+                justify-content: center;
             }
         }
     </style>

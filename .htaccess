@@ -3,6 +3,9 @@
 # Advanced Web Server Security Rules (.htaccess)
 # ========================================================
 
+# 0. Prioritize PHP app on Apache/XAMPP/PHP servers (GitHub Pages uses index.html)
+DirectoryIndex index.php index.html
+
 # 1. Disable Directory Indexing / Browsing
 Options -Indexes
 

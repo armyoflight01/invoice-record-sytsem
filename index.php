@@ -349,7 +349,7 @@ $currentUser = getCurrentUser();
                         <option value="fawas" data-i18n="partner_fawas">Mr. Fawas</option>
                     </select>
 
-                    <div style="display:flex; align-items:center; gap:8px;">
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                         <input type="date" id="dateFromFilter" class="filter-select">
                         <span style="color:var(--text-muted); font-size:12px;" data-i18n="date_to">To</span>
                         <input type="date" id="dateToFilter" class="filter-select">
@@ -788,7 +788,7 @@ Hosting and domain, with SSL security
                         </div>
                     </div>
                     <div class="card-body">
-                        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:24px;">
+                        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap:24px;">
                             <div style="background:var(--primary-light); border:1px solid var(--primary-border); padding:24px; border-radius:var(--radius-lg);">
                                 <h3 style="color:var(--primary-dark); font-size:17px; margin-bottom:8px;" data-i18n="backup_export_title">Export Full Database Backup</h3>
                                 <p style="color:var(--text-muted); font-size:13px; margin-bottom:16px;" data-i18n="backup_export_desc">Download a complete JSON snapshot containing all clients, invoices, service items, and company settings.</p>
@@ -919,7 +919,7 @@ Hosting and domain, with SSL security
                         </div>
                     </div>
                     <div class="card-body">
-                        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:16px;">
+                        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap:16px;">
                             <div style="background:#f8fafc; border:1px solid #cbd5e1; padding:14px; border-radius:8px; border-left:4px solid #16a34a;">
                                 <strong style="color:#0f172a; font-size:13.5px; display:block; margin-bottom:4px;">🛡️ Web Application Firewall (WAF)</strong>
                                 <span style="font-size:12px; color:#475569;">Scans every request for SQL injection, Cross-Site Scripting (XSS), Remote Code Execution (RCE), command injection, and null bytes.</span>
